@@ -36,15 +36,15 @@ re-implementation would have had to own all of that and keep owning it forever.
 
 ```mermaid
 graph TB
-    subgraph flash["/boot/config/plugins/folder.view2 — USB flash, persistent"]
+    subgraph flash["/boot/config/plugins/unraid-folderview — USB flash, persistent"]
         DJ["docker.json"]
         VJ["vm.json"]
         US["scripts/ + styles/<br/>(user extensions)"]
     end
 
-    subgraph ram["/usr/local/emhttp/plugins/folder.view2 — RAM disk, rebuilt at boot"]
+    subgraph ram["/usr/local/emhttp/plugins/unraid-folderview — RAM disk, rebuilt at boot"]
         subgraph pages["Page layer (.page)"]
-            P1["folder.view2.Docker.page<br/>folder.view2.VMs.page<br/>folder.view2.Dashboard.page<br/><i>inject into existing tabs</i>"]
+            P1["unraid-folderview.Docker.page<br/>unraid-folderview.VMs.page<br/>unraid-folderview.Dashboard.page<br/><i>inject into existing tabs</i>"]
             P2["Folder.page<br/><i>create / edit form</i>"]
             P3["FolderView2.page<br/><i>Settings → Utilities</i>"]
         end
@@ -102,7 +102,7 @@ Four layers, each thin:
 ## 3. The data model
 
 Two JSON files on flash, keyed by a random 20-char ID
-([`generateId`](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L107)):
+([`generateId`](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L107)):
 
 ```jsonc
 {
@@ -122,7 +122,7 @@ Notes that matter:
 - **The ID is never shown and never derived from the name.** Renaming a folder
   cannot orphan it, and two folders can share a name. Cheap and correct.
 - **`settings` is a flat bag of 20 fields** written by
-  [`submitForm`](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/folder.js#L246)
+  [`submitForm`](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder.js#L247)
   and read with `?.` + `||` defaults everywhere. There is no schema and no migration
   step — a folder written by a 2023 build still loads, because every consumer
   defaults each missing field individually. Crude, but it has survived two years of
@@ -137,7 +137,7 @@ Notes that matter:
 graph LR
     A["Explicit list<br/><code>folder.containers</code>"] --> U(("∪"))
     B["Regex match<br/><code>folder.regex</code> vs name"] --> U
-    C["Docker label<br/><code>folder.view2 == folder.name</code>"] --> U
+    C["Docker label<br/><code>unraid-folderview == folder.name</code>"] --> U
     U --> M["combinedContainers"]
     style U fill:#8e44ad,color:#fff
 ```
@@ -145,15 +145,21 @@ graph LR
 Three mechanisms for one concept looks like over-design until you see who each
 serves. The explicit list is for humans clicking checkboxes. The regex is for naming
 conventions (`^arr-`, or Pterodactyl's UUID-named eggs — the tooltip in
-[Folder.page:390](src/folder.view2/usr/local/emhttp/plugins/folder.view2/Folder.page#L390)
+[Folder.page:390](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/Folder.page#L390)
 gives exactly that example). The **label** is the important one: it lets a
 `docker-compose.yml` declare its own folder membership, so a stack that is torn down
 and recreated lands back in the right folder without anyone touching the UI. That is
 the docker-compose use case named in the README, and neither of the other two
 mechanisms can serve it.
 
+Because that label lives in *users'* compose files rather than in this plugin's
+config, the 2026.08.07 rename could not simply change it. Both `unraid-folderview`
+and the legacy `folder.view2` are accepted, new name first. This is the general
+shape of the problem with any identifier you hand to users: you can rename what you
+own, but not what they wrote down.
+
 The union is computed in
-[`createFolder`](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L235-L259),
+[`createFolder`](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L235-L267),
 explicit-first, with `includes` guards preventing double-add. Note the asymmetry:
 the regex is evaluated **client-side** at render time, so it re-evaluates on every
 refresh and picks up new containers automatically — no persistence, no staleness.
@@ -192,8 +198,8 @@ sequenceDiagram
 Two details worth stealing:
 
 **The four requests are fired in the patched `loadlist` but awaited in
-`createFolders`** ([docker.js:1536](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L1536)
-vs [docker.js:12](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L12)).
+`createFolders`** ([docker.js:1543](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L1543)
+vs [docker.js:12](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L12)).
 The plugin's network round-trips overlap Unraid's own render entirely. By the time
 there is a DOM to rearrange, the folder data has usually already arrived. The
 changelog entry "now folder load faster" is this change. It is a genuinely nice
@@ -205,8 +211,8 @@ the flag ensures folders are built exactly once and reset only by a fresh `loadl
 The Dashboard and VM tabs have no equivalent global to patch, so they intercept
 differently — `$.ajaxPrefilter` watches for `DashboardApps.php` / `VMMachines.php`
 and chains off the jqXHR promise
-([dashboard.js tail](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/dashboard.js),
-[vm.js tail](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/vm.js)).
+([dashboard.js tail](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/dashboard.js),
+[vm.js tail](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/vm.js)).
 Same idea, two mechanisms across three tabs, because the host page dictates it.
 
 ### The undeclared dependency surface
@@ -217,12 +223,12 @@ assumes exist — no declaration, no guard, no grep-able patch site:
 
 | Symbol | Used at | Breaks if renamed |
 |---|---|---|
-| `eventURL` | [docker.js:1231](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L1231) | Every Docker folder action. Note `vm.js:505` declares its own; `docker.js` never does. |
-| `dockerload` | [docker.js:1563](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L1563) | Live CPU/MEM on folders and in the advanced tooltip. |
-| `switchButton` | [docker.js:288](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L288) | The folder autostart toggle. |
+| `eventURL` | [docker.js:1238](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L1238) | Every Docker folder action. Note `vm.js:505` declares its own; `docker.js` never does. |
+| `dockerload` | [docker.js:1570](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L1570) | Live CPU/MEM on folders and in the advanced tooltip. |
+| `switchButton` | [docker.js:295](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L295) | The folder autostart toggle. |
 | `openBox` / `openDocker` | `folderCustomAction`, `updateFolder` | Custom actions and folder updates. |
 | `autov` | every `.page` | Cache-busted asset URLs. |
-| `docker_listview_mode` cookie | [docker.js:231](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L231) | Advanced-view column layout. |
+| `docker_listview_mode` cookie | [docker.js:231](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L231) | Advanced-view column layout. |
 
 Plus one external plugin: **User Scripts** must be installed for type-1 custom
 actions to work at all. Nothing degrades gracefully — these are bare references.
@@ -240,7 +246,7 @@ parallel ordering system, no sync problem.
 The price is one lie the plugin must maintain. Unraid re-numbers the order on save
 and gets confused by the extra entries, so `$.ajaxPrefilter` rewrites the outgoing
 `UserPrefs.php` payload, regenerating a clean `0;1;2;…` index sequence
-([docker.js:1721](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L1721)).
+([docker.js:1728](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L1728)).
 The VM variant additionally runs `/^(.*?)(?=folder-)/g` over each name, stripping
 whatever *precedes* a `folder-` marker in the names field.
 This is the seam of the whole design: a five-line interceptor keeping a first-party
@@ -259,7 +265,7 @@ misleading:
 The variable names are swapped relative to the endpoint names. Expect to re-read
 this every time.
 
-The reconciliation ([docker.js:32-43](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L32-L43)):
+The reconciliation ([docker.js:32-43](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L32-L43)):
 
 1. `newOnes` = containers in the live list but not in saved prefs — i.e. containers
    created since the last drag-order. These have no saved position.
@@ -275,12 +281,12 @@ which under `SORT_NUMERIC` is `0` — so *Unraid puts new containers at the fron
 The offset is written for exactly that. But the array being offset comes from the
 plugin's own `readUnraidOrder`, which assigns unknown containers
 `$count + count($sort) + 1`
-([lib.php:411](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L411))
+([lib.php:411](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L411))
 — *the back*. The two disagree precisely when `newOnes` is non-empty, i.e. whenever
 a container has been created since the last manual drag-order.
 
 That matters more than it looks, because `key` is used as **both** an array index and
-a DOM index — [docker.js:276](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L276)
+a DOM index — [docker.js:283](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L283)
 inserts the folder row at `$('#docker_list > tr.sortable').eq(key - 1)`. When the
 array and the DOM disagree about where new containers sit, the folder lands in the
 wrong place. This is the most likely root cause behind the recurring
@@ -328,7 +334,7 @@ chrome. Expanding a folder just moves the stored rows back out after the folder 
 order array while `createFolder` splices entries out of that same array. Every
 absorbed container that sat *before* the folder's slot shifts the loop's own cursor
 backwards by one, so the child returns a count and the parent rewinds `key` by it
-([docker.js:124-126](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L124-L126)).
+([docker.js:124-126](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L124-L126)).
 This works. It is also index arithmetic over a live-mutated array with a DOM write
 in the middle, and the changelog documents at least six bugs traceable to it
 ("folder were offsetting index on the grabbing", "issue preventing folders from
@@ -347,7 +353,7 @@ free, and it removes an invalidation problem entirely — the right call.
 ## 5. The server side
 
 Nine endpoints, seven of them three lines. All real work is in
-[`lib.php`](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php).
+[`lib.php`](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php).
 
 ```mermaid
 graph LR
@@ -373,7 +379,7 @@ graph LR
 
 ### `readInfo` — where the complexity actually lives
 
-This one function ([lib.php:118-395](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L118-L395))
+This one function ([lib.php:118-395](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L118-L395))
 is ~55% of the PHP. It assembles the per-container payload the UI needs, and it has
 one genuinely good optimisation and one genuinely expensive habit.
 
@@ -381,7 +387,7 @@ one genuinely good optimisation and one genuinely expensive habit.
 (WebUI URL, shell, support links) in XML templates. The naive shape is "for each
 container, find and parse its template" — O(containers × templates) DOM parses. The
 code instead parses every template once up front into a map keyed `name|image`
-([lib.php:136-158](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L136-L158))
+([lib.php:136-158](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L136-L158))
 and then does O(1) lookups. Small change, real win on a 40-container server.
 
 **Fallback chain: XML template → Docker labels.** A container is `dockerman`-managed
@@ -398,14 +404,14 @@ target audience.
 placeholders resolved against the container's actual network mode, with four
 distinct cases (host / bridge / custom / none), and `[PORT:nnnn]` mapped through the
 *published* port rather than the internal one
-([lib.php:285-311](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L285-L311)).
+([lib.php:285-311](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L285-L311)).
 This is reimplementing Unraid's own logic rather than calling it — a maintenance
 liability, but Unraid exposes no reusable function for it.
 
 **Expensive: Tailscale resolution shells out.** `[hostname]` and `[noserve]`
 placeholders require asking the container itself, via
 `docker exec <name> tailscale …`
-([lib.php:29-71](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L29-L71)).
+([lib.php:29-71](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L29-L71)).
 Up to two `exec` calls per Tailscale container, synchronously, **on every list
 refresh**. Injection is guarded correctly — a `^[a-zA-Z0-9_.-]+$` name check *and*
 `escapeshellarg` — but a `docker exec` costs 50-200ms and they are serial. Ten such
@@ -418,7 +424,7 @@ To interleave folders correctly, the plugin needs the container order exactly as
 Unraid computes it. There is no exported function to call, so it re-derives it: read
 `userprefs.cfg`, build a sort key per container, `array_multisort`, with a
 `strnatcasecmp` fallback
-([lib.php:397-463](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L397-L463)).
+([lib.php:397-463](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L397-L463)).
 
 It does **not** match Unraid, on the one case that matters most:
 
@@ -451,7 +457,7 @@ graph LR
 ```
 
 `folderEvents` is a bare `EventTarget` — the entire mechanism is
-[one line](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/include/customEvents.js).
+[one line](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/include/customEvents.js).
 
 **Thirteen `docker-*` events** fire around the render lifecycle, in matched pairs
 except the last: `docker-{pre,post}-folders-creation`,
@@ -537,11 +543,11 @@ remotely-reachable vulnerability against a root-privileged UI
 `csrf_token` on the mutating endpoints (with `delete.php` mutating on `GET`),
 unwhitelisted `type` reaching a filesystem path, and raw interpolation of
 `folder.name` / `folder.icon` into HTML at
-[docker.js:263](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L263).
+[docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270).
 Session auth is not a mitigation — CSRF is the attack where the victim's session is
 already valid. The saving grace is that each fix is independent and small; ~25 lines
 closes all three. `readUserPrefs` at
-[lib.php:81-84](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L81-L84)
+[lib.php:81-84](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L81-L84)
 already whitelists correctly, so the pattern is in the codebase — it just wasn't
 applied to the other five call sites.
 

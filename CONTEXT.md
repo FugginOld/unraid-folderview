@@ -24,22 +24,32 @@ global points at (`dynamix.docker.manager/include/Events.php`), VM actions to
 `exec.php`. Uninstalling changes nothing about your containers.
 
 **Uninstalling does, however, delete all your folder definitions.** The remove block
-in [folder.view2.plg:311-317](folder.view2.plg#L311-L317) runs
-`rm -rf /boot/config/plugins/folder.view2`, which takes `docker.json`, `vm.json`,
+in [unraid-folderview.plg:311-317](unraid-folderview.plg#L311-L317) runs
+`rm -rf /boot/config/plugins/unraid-folderview`, which takes `docker.json`, `vm.json`,
 *and* the user's `scripts/` and `styles/` extensions with it. Export first — see §7.
 
 ### Lineage — read this before you get confused by names
 
 | Thing | Value |
 |---|---|
-| This git repo | `FugginOld/unraid-folderview` (directory: `unraid-folderview`) |
-| Plugin ID / package name | `folder.view2` |
+| This git repo | `FugginOld/unraid-folderview` |
+| Plugin ID / package name | `unraid-folderview` |
+| Previous plugin ID | `folder.view2` — renamed 2026.08.07 |
 | Upstream this forked from | [VladoPortos/folder.view2](https://github.com/VladoPortos/folder.view2) |
 | Original author | [scolcipitato/folder.view](https://github.com/scolcipitato/folder.view) |
 
-Three different names are in play. The repo directory name is **not** the plugin
-name — everything on disk, in URLs, and in config paths is `folder.view2`. The
-`.plg` manifest still points at **VladoPortos**' repo, not this one (see §7).
+The repo name and the plugin ID now match — everything on disk, in URLs, and in
+config paths is `unraid-folderview`. That was not true before the rename, and two
+deliberate exceptions remain:
+
+- **The `folder.view2` docker label is still honoured** for folder membership, so
+  existing `docker-compose.yml` files keep working. See §6.
+- **`/boot/config/plugins/folder.view2` is still read once, on install**, to migrate
+  folders forward. See §2.
+
+User-facing display names were left alone: the settings page is still `FolderView2.page`
+at `Settings/FolderView2`, and the UI still says "FolderView2". This rename covered
+package identity only — renaming the *product* is a separate decision.
 
 ---
 
@@ -49,15 +59,15 @@ Unraid's web UI (`emhttp`) is a PHP application whose plugin directory lives on 
 **RAM disk**. This drives almost every odd decision in the repo.
 
 ```
-/usr/local/emhttp/plugins/folder.view2/   ← RAM disk. Wiped on every reboot.
+/usr/local/emhttp/plugins/unraid-folderview/   ← RAM disk. Wiped on every reboot.
                                             Rebuilt at boot from the .txz on flash.
-/boot/config/plugins/folder.view2/        ← USB flash. The only persistent storage.
+/boot/config/plugins/unraid-folderview/        ← USB flash. The only persistent storage.
     docker.json    ← all Docker folder definitions
     vm.json        ← all VM folder definitions
     version        ← installed version string
     scripts/       ← user-supplied .js extensions (survive upgrades)
     styles/        ← user-supplied .css overrides (survive upgrades)
-    folder.view2-<version>.txz  ← the installed package
+    unraid-folderview-<version>.txz  ← the installed package
 ```
 
 Consequences you must internalise:
@@ -68,15 +78,21 @@ Consequences you must internalise:
   the *only* place user customisation can survive an upgrade.
 - **Uninstalling wipes the flash directory too** — surviving an upgrade is not the
   same as surviving a removal. Nothing here is backed up automatically.
+- **A second, legacy directory may exist:** `/boot/config/plugins/folder.view2`.
+  The post-install block in [unraid-folderview.plg](unraid-folderview.plg) copies
+  `docker.json`, `vm.json`, `scripts/` and `styles/` forward from it on first
+  install — copy, never move, and it never overwrites an existing file. The legacy
+  directory is deliberately left in place as the user's fallback, and is deleted
+  only when they remove the *old* FolderView2 plugin.
 
 ---
 
 ## 3. Repository layout
 
 ```
-folder.view2.plg          Plugin manifest (XML+DTD). Version, MD5, changelog,
+unraid-folderview.plg          Plugin manifest (XML+DTD). Version, MD5, changelog,
                           install/remove shell. This is what Unraid installs.
-pkg_build.sh              Build: src/ → archive/folder.view2-YYYY.MM.DD.txz,
+pkg_build.sh              Build: src/ → archive/unraid-folderview-YYYY.MM.DD.txz,
                           then rewrites version+md5 entities in the .plg.
 copy_to_git.sh            REVERSE sync: live server → repo. See §5.
 archive/*.txz             Committed release artifacts. The .plg downloads these.
@@ -85,7 +101,7 @@ dev/                      Extension-author docs + event templates + HTML snapsho
                           of the markup the plugin generates.
 img/                      README assets.
 
-src/folder.view2/usr/local/emhttp/plugins/folder.view2/
+src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/
     *.page                Unraid page definitions (front-matter + PHP/HTML)
     server/*.php          9 HTTP endpoints, all thin wrappers over lib.php
     scripts/*.js          Per-tab client logic (docker, vm, dashboard, folder form)
@@ -124,8 +140,8 @@ Two workflows exist in this repo, and only one of them is the good one.
 
 ```bash
 # Runs ON the Unraid server, from a clone of this repo:
-rm -Rf src/.../folder.view2/*
-cp /usr/local/emhttp/plugins/folder.view2/* src/.../folder.view2 -R -v -p
+rm -Rf src/.../unraid-folderview/*
+cp /usr/local/emhttp/plugins/unraid-folderview/* src/.../unraid-folderview -R -v -p
 ```
 
 It copies the **live server** back into the repo. This is how the project has been
@@ -135,7 +151,7 @@ backwards, and it silently destroys any repo-only change (note the `rm -Rf`).
 
 ### The one to prefer
 
-Edit in the repo → copy `src/.../folder.view2/*` onto a test server → hard-refresh
+Edit in the repo → copy `src/.../unraid-folderview/*` onto a test server → hard-refresh
 the browser. Because there is no build step, a file copy is the whole deploy. Then
 commit from the repo, not from the server.
 
@@ -147,9 +163,9 @@ elsewhere. There is no test suite, no CI, no linter, no mock harness.
 ### Cutting a release
 
 ```bash
-./pkg_build.sh        # builds archive/folder.view2-$(date +%Y.%m.%d).txz
+./pkg_build.sh        # builds archive/unraid-folderview-$(date +%Y.%m.%d).txz
                       # and rewrites <!ENTITY version> + <!ENTITY md5> in the .plg
-git add archive/ folder.view2.plg && git commit
+git add archive/ unraid-folderview.plg && git commit
 ```
 
 Version numbers are dates. A second build the same day gets `.1`, `.2`, … appended.
@@ -183,6 +199,12 @@ is the fastest way to diagnose an ordering bug. There is also a compile-time-ish
 `FOLDER_VIEW_DEBUG_MODE` const at the top of `docker.js` and `FV2_DEBUG_MODE` in
 `lib.php` for verbose logging.
 
+**The docker membership label has two accepted spellings.** `unraid-folderview` is
+current; `folder.view2` is the pre-rename name and is still honoured, because users'
+`docker-compose.yml` files in the wild carry it and silently unfiling their
+containers would read as data loss. Both are checked at all three membership sites
+(`docker.js`, `dashboard.js`, `folder.js`) — if you touch one, touch all three.
+
 **Custom CSS/JS files** follow `ANYTHING.TAB.css` where TAB is `dashboard`, `docker`,
 `vm`, or a `-`-joined combination — the leading dot matters. Documented in
 [dev/README.md](dev/README.md).
@@ -197,7 +219,7 @@ Things that will bite you. Details and reasoning in
 1. **The `.plg` manifest is easy to leave inconsistent, and was.** Two defects —
    a `<URL>` built from a non-existent `master` branch, and a `version` entity two
    releases behind `archive/` — are **fixed on this branch**
-   ([folder.view2.plg:9,10,290](folder.view2.plg#L290)), but upstream still carries
+   ([unraid-folderview.plg:9,10,290](unraid-folderview.plg#L290)), but upstream still carries
    both, so they will return on any merge from there.
 
    The durable lesson for anyone cutting a release: `version` and `md5` are
@@ -216,13 +238,13 @@ Things that will bite you. Details and reasoning in
      admin visits can drive these endpoints.
    - **`type` is unvalidated and lands in a filesystem path.** `$_GET['type']` /
      `$_POST['type']` flows into `"$configDir/$type.json"` throughout
-     [lib.php:73-116](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L73-L116)
+     [lib.php:73-116](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L73-L116)
      with no whitelist — including `createFile`, which is the *write* primitive
      reachable from the read path. Note `readUserPrefs`
-     ([lib.php:81-84](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L81-L84))
+     ([lib.php:81-84](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L81-L84))
      already whitelists correctly; the pattern exists, it just wasn't applied.
    - **`folder.name` and `folder.icon` are interpolated raw into HTML** at
-     [docker.js:263](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L263).
+     [docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270).
      A folder created via the first two gaps whose name is `<img src=x onerror=…>`
      executes in the admin's session on the next Docker-tab load.
 
@@ -247,7 +269,7 @@ Things that will bite you. Details and reasoning in
 
 4. **Ordering is index arithmetic over a live-mutated array.** `createFolder` returns
    a count of absorbed rows and the caller rewinds its loop counter by it
-   ([docker.js:124-126](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L124-L126)).
+   ([docker.js:124-126](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L124-L126)).
    It is the single most fragile thing in the codebase and the source of most
    historical "folder appears in the wrong place" bugs. See
    [ARCHITECTURE.md §4.3](ARCHITECTURE.md#43-reconciling-two-orderings) for a known
@@ -255,14 +277,14 @@ Things that will bite you. Details and reasoning in
 
 5. **`readInfo` shells out per *Tailscale-enabled* container.** Those trigger up to
    two `docker exec` calls each, serially, on *every* list refresh
-   ([lib.php:29-71](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L29-L71)).
+   ([lib.php:29-71](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L29-L71)).
    Names are regex-validated *and* `escapeshellarg`'d, so this one is genuinely safe
    — it is purely a latency problem. Containers without Tailscale cost nothing.
 
 6. **~290 of `docker.js`'s 1752 lines are debug logging** guarded by a constant that
    ships as `false`. There is also dead debug code keyed to one specific folder ID
    from the original author's own server
-   ([docker.js:206-210](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L206-L210)).
+   ([docker.js:206-210](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L206-L210)).
    Read past both.
 
 7. **`pkg_build.sh` runs `chmod 0755 -R .` across the whole repo** — twice, including
