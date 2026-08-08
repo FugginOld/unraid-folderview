@@ -68,6 +68,29 @@ function htmlEscape(value) {
     return String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 }
 
+/**
+ * Debug switch. Deliberately a property of the global object rather than a `const`:
+ * a top-level `const` in a classic script creates a global *lexical* binding, which is
+ * neither reachable as `globalThis.FOLDER_VIEW_DEBUG_MODE` nor reassignable — so the
+ * "flip it from the browser console" workflow the old flag advertised never worked.
+ * `??=` leaves an already-set value alone, so setting it earlier on the page still wins.
+ *
+ * This is the one documented exception to the no-top-level-side-effects rule above.
+ */
+globalThis.FOLDER_VIEW_DEBUG_MODE ??= false;
+
+/**
+ * Debug logging. Reads the switch on every call, so toggling it mid-session takes effect
+ * on the next render without a page reload.
+ */
+function folderLog(...args) {
+    if (globalThis.FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG]', ...args);
+}
+
+function folderWarn(...args) {
+    if (globalThis.FOLDER_VIEW_DEBUG_MODE) console.warn('[FV2_DEBUG]', ...args);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { folderRegex, interleaveFolders, htmlEscape };
+    module.exports = { folderRegex, interleaveFolders, htmlEscape, folderLog, folderWarn };
 }

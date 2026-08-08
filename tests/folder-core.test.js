@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const core = require('../src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder-core.js');
+const MODULE_PATH = '../src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder-core.js';
+const core = require(MODULE_PATH);
 
 test('folderRegex matches folder placeholders only', () => {
   assert.ok(core.folderRegex.test('folder-Ax7Kq2mNp9RtVw3ZcYb1'));
@@ -101,4 +102,82 @@ test('htmlEscape is idempotent-safe for the ampersand case', () => {
   // Double-escaping is ugly but not a vulnerability; assert the behaviour so a future
   // change to "escape once" is a deliberate decision rather than an accident.
   assert.strictEqual(core.htmlEscape(core.htmlEscape('<b>')), '&amp;lt;b&amp;gt;');
+});
+
+// --- folderLog / folderWarn ---
+
+test('folderLog is silent when the debug flag is off', () => {
+  const original = console.log;
+  const seen = [];
+  console.log = (...a) => seen.push(a);
+  try {
+    globalThis.FOLDER_VIEW_DEBUG_MODE = false;
+    core.folderLog('should not appear');
+  } finally { console.log = original; }
+  assert.deepStrictEqual(seen, []);
+});
+
+test('folderLog forwards every argument when the flag is on', () => {
+  const original = console.log;
+  const seen = [];
+  console.log = (...a) => seen.push(a);
+  try {
+    globalThis.FOLDER_VIEW_DEBUG_MODE = true;
+    core.folderLog('a', 1, { b: 2 });
+  } finally {
+    console.log = original;
+    globalThis.FOLDER_VIEW_DEBUG_MODE = false;
+  }
+  assert.deepStrictEqual(seen, [['[FV2_DEBUG]', 'a', 1, { b: 2 }]]);
+});
+
+test('folderLog reads the flag at call time, not at load time', () => {
+  const original = console.log;
+  const seen = [];
+  console.log = (...a) => seen.push(a);
+  try {
+    globalThis.FOLDER_VIEW_DEBUG_MODE = false;
+    core.folderLog('off');
+    globalThis.FOLDER_VIEW_DEBUG_MODE = true;
+    core.folderLog('on');
+  } finally {
+    console.log = original;
+    globalThis.FOLDER_VIEW_DEBUG_MODE = false;
+  }
+  assert.deepStrictEqual(seen, [['[FV2_DEBUG]', 'on']]);
+});
+
+test('folderWarn routes to console.warn', () => {
+  const original = console.warn;
+  const seen = [];
+  console.warn = (...a) => seen.push(a);
+  try {
+    globalThis.FOLDER_VIEW_DEBUG_MODE = true;
+    core.folderWarn('careful');
+  } finally {
+    console.warn = original;
+    globalThis.FOLDER_VIEW_DEBUG_MODE = false;
+  }
+  assert.deepStrictEqual(seen, [['[FV2_DEBUG]', 'careful']]);
+});
+
+test('the debug switch defaults to off and is reachable on globalThis', () => {
+  // A top-level `const` in a classic script is a global lexical binding: not a property
+  // of globalThis and not reassignable. The switch has to be an actual global property
+  // or the documented "flip it from the console" workflow cannot work.
+  // Clear the flag and re-require so this asserts the module's own doing, not the
+  // leftovers of the tests above.
+  delete globalThis.FOLDER_VIEW_DEBUG_MODE;
+  delete require.cache[require.resolve(MODULE_PATH)];
+  require(MODULE_PATH);
+  assert.ok(Object.hasOwn(globalThis, 'FOLDER_VIEW_DEBUG_MODE'));
+  assert.strictEqual(globalThis.FOLDER_VIEW_DEBUG_MODE, false);
+});
+
+test('the debug switch is not clobbered if it was set before load', () => {
+  globalThis.FOLDER_VIEW_DEBUG_MODE = true;
+  delete require.cache[require.resolve(MODULE_PATH)];
+  require(MODULE_PATH);
+  assert.strictEqual(globalThis.FOLDER_VIEW_DEBUG_MODE, true);
+  globalThis.FOLDER_VIEW_DEBUG_MODE = false;
 });

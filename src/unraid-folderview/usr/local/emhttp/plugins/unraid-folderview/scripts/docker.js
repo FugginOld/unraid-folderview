@@ -1,39 +1,33 @@
-const FOLDER_VIEW_DEBUG_MODE = false; // Added for debugging
-
-if (FOLDER_VIEW_DEBUG_MODE) {
-    console.log('[FV2_DEBUG] docker.js loaded. FOLDER_VIEW_DEBUG_MODE is ON.');
-}
+// The debug switch and folderLog/folderWarn live in scripts/folder-core.js, which every
+// tab page loads first. Flip it from the browser console with
+//   FOLDER_VIEW_DEBUG_MODE = true
+// and the next render logs; no reload needed.
+folderLog('docker.js loaded.');
 
 /**
  * Handles the creation of all folders
  */
 const createFolders = async () => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Entry');
+    folderLog('createFolders: Entry');
     const prom = await Promise.all(folderReq);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Promises resolved', prom);
-
+    folderLog('createFolders: Promises resolved', prom);
     // Parse the results
     let folders = JSON.parse(prom[0]);
     const unraidOrder = JSON.parse(prom[1]);
     const containersInfo = JSON.parse(prom[2]);
     let order = Object.values(JSON.parse(prom[3]));
 
-    if (FOLDER_VIEW_DEBUG_MODE) {
-        console.log('[FV2_DEBUG] createFolders: --- INITIAL ORDERS ---');
-        console.log('[FV2_DEBUG] createFolders: Raw `unraidOrder` (from read_order.php):', JSON.parse(JSON.stringify(unraidOrder)));
-        console.log('[FV2_DEBUG] createFolders: Raw `order` (from read_unraid_order.php - UI order):', JSON.parse(JSON.stringify(order)));
-        console.log('[FV2_DEBUG] createFolders: Initial `folders` data:', JSON.parse(JSON.stringify(folders)));
-        console.log('[FV2_DEBUG] createFolders: Initial `containersInfo` keys:', Object.keys(containersInfo));
-        console.log('[FV2_DEBUG] createFolders: --- END INITIAL ORDERS ---');
-    }
+    // Deep-copied because `order` and `folders` are both mutated further down and the
+    // browser console renders live object references, not snapshots.
+    folderLog('createFolders: initial orders', JSON.parse(JSON.stringify({
+        unraidOrder, order, folders, containersInfo: Object.keys(containersInfo)
+    })));
 
 
     // Interleave the folder placeholders saved in userprefs.cfg into the live order.
     // See folder-core.js — pure, and covered by tests/folder-core.test.js.
     order = interleaveFolders(unraidOrder, order, folders);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Order after inserting Unraid-ordered folders', [...order]);
-
-
+    folderLog('createFolders: Order after inserting Unraid-ordered folders', [...order]);
     const autostartOrder = Object.values(containersInfo).filter(el => !(el.info.State.Autostart===false)).sort((a, b) => {
         if(a.info.State.Autostart < b.info.State.Autostart) {
           return -1;
@@ -43,12 +37,10 @@ const createFolders = async () => {
         }
           return 0;
     }).map(el => el.info.Name);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: autostartOrder', autostartOrder);
-
-
+    folderLog('createFolders: autostartOrder', autostartOrder);
     // debug mode, download the debug json file
     if(folderDebugMode) { // This is the existing folderDebugMode, not FOLDER_VIEW_DEBUG_MODE
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: folderDebugMode (existing) is TRUE. Preparing debug JSON download.');
+        folderLog('createFolders: folderDebugMode (existing) is TRUE. Preparing debug JSON download.');
         let element = document.createElement('a');
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify({
             version: (await $.get('/plugins/unraid-folderview/server/version.php').promise()).trim(),
@@ -68,31 +60,28 @@ const createFolders = async () => {
 
         document.body.removeChild(element);
         console.log('Order:', [...order]); // Existing log
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Debug JSON downloaded. Order logged (existing log):', [...order]);
+        folderLog('createFolders: Debug JSON downloaded. Order logged (existing log):', [...order]);
     }
 
     let foldersDone = {};
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Initialized foldersDone', foldersDone);
-
-
+    folderLog('createFolders: Initialized foldersDone', foldersDone);
     if(folderobserver) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Disconnecting existing folderobserver.');
+        folderLog('createFolders: Disconnecting existing folderobserver.');
         folderobserver.disconnect();
         folderobserver = undefined;
     }
 
     folderobserver = new MutationObserver((mutationList, observer) => {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] folderobserver: Mutation observed', mutationList);
+        folderLog('folderobserver: Mutation observed', mutationList);
         for (const mutation of mutationList) {
             if(/^load-/.test(mutation.target.id)) {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] folderobserver: Target ID matches /^load-/', mutation.target.id, mutation.target.className);
+                folderLog('folderobserver: Target ID matches /^load-/', mutation.target.id, mutation.target.className);
                 $('i#folder-' + mutation.target.id).attr('class', mutation.target.className)
             }
         }
     });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: New folderobserver created.');
-
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Dispatching docker-pre-folders-creation event.');
+    folderLog('createFolders: New folderobserver created.');
+    folderLog('createFolders: Dispatching docker-pre-folders-creation event.');
     folderEvents.dispatchEvent(new CustomEvent('docker-pre-folders-creation', {detail: {
         folders: folders,
         order: order,
@@ -100,56 +89,54 @@ const createFolders = async () => {
     }}));
 
     // Draw the folders in the order
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Starting loop to draw folders in order.');
+    folderLog('createFolders: Starting loop to draw folders in order.');
     for (let key = 0; key < order.length; key++) {
         const container = order[key];
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Loop iteration: key=${key}, container=${container}`);
+        folderLog(`createFolders: Loop iteration: key=${key}, container=${container}`);
         if (container && folderRegex.test(container)) {
             let id = container.replace(folderRegex, '');
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Is a folder: id=${id}`);
+            folderLog(`createFolders: Is a folder: id=${id}`);
             if (folders[id]) {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Folder ${id} exists in folders data. Calling createFolder. Position in order: ${key}`);
+                folderLog(`createFolders: Folder ${id} exists in folders data. Calling createFolder. Position in order: ${key}`);
                 // Pass 'order' (the live array) to createFolder.
                 // 'position' is the current 'key' (index of the folder placeholder in the 'order' array).
                 const removedCount = createFolder(folders[id], id, key, order, containersInfo, Object.keys(foldersDone));
                 key -= removedCount; // Adjust key by the number of items that were before the folder and moved into it.
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: createFolder for ${id} returned remBefore=${removedCount}. Adjusted main loop key to ${key}.`);
+                folderLog(`createFolders: createFolder for ${id} returned remBefore=${removedCount}. Adjusted main loop key to ${key}.`);
                 foldersDone[id] = folders[id];
                 delete folders[id];
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Folder ${id} moved to foldersDone. Updated foldersDone:`, {...foldersDone}, "Remaining folders:", {...folders});
+                folderLog(`createFolders: Folder ${id} moved to foldersDone. Updated foldersDone:`, {...foldersDone}, "Remaining folders:", {...folders});
             } else {
-                if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolders: Folder ${id} (from order) not found in folders data.`);
+                folderWarn(`createFolders: Folder ${id} (from order) not found in folders data.`);
             }
         }
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Finished loop for ordered folders.');
-
+    folderLog('createFolders: Finished loop for ordered folders.');
     // Draw the foldes outside of the order
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Starting loop to draw folders outside of order (remaining).');
+    folderLog('createFolders: Starting loop to draw folders outside of order (remaining).');
     for (const [id, value] of Object.entries(folders)) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Processing remaining folder: id=${id}`);
+        folderLog(`createFolders: Processing remaining folder: id=${id}`);
         // Add the folder on top of the array
         order.unshift(`folder-${id}`);
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Unshifted folder-${id} to order. New order:`, [...order]);
+        folderLog(`createFolders: Unshifted folder-${id} to order. New order:`, [...order]);
         createFolder(value, id, 0, order, containersInfo, Object.keys(foldersDone));
         // Move the folder to the done object and delete it from the undone one
         foldersDone[id] = folders[id];
         delete folders[id];
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Remaining folder ${id} moved to foldersDone. Updated foldersDone:`, {...foldersDone}, "Remaining folders:", {...folders});
+        folderLog(`createFolders: Remaining folder ${id} moved to foldersDone. Updated foldersDone:`, {...foldersDone}, "Remaining folders:", {...folders});
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Finished loop for remaining folders.');
-
+    folderLog('createFolders: Finished loop for remaining folders.');
     // Expand folders that are set to be expanded by default, this is here because is easier to work with all compressed folder when creating them
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Expanding folders set to expand by default.');
+    folderLog('createFolders: Expanding folders set to expand by default.');
     for (const [id, value] of Object.entries(foldersDone)) {
         if ((globalFolders[id] && globalFolders[id].status.expanded) || value.settings.expand_tab) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Expanding folder ${id} by default.`);
+            folderLog(`createFolders: Expanding folder ${id} by default.`);
             value.status.expanded = true;
             dropDownButton(id);
         }
     }
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Dispatching docker-post-folders-creation event.');
+    folderLog('createFolders: Dispatching docker-post-folders-creation event.');
     folderEvents.dispatchEvent(new CustomEvent('docker-post-folders-creation', {detail: {
         folders: folders, // Note: this `folders` object will be empty here if all were processed
         order: order,
@@ -158,23 +145,20 @@ const createFolders = async () => {
 
     // Assing the folder done to the global object
     globalFolders = foldersDone;
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Assigned foldersDone to globalFolders:', {...globalFolders});
-
+    folderLog('createFolders: Assigned foldersDone to globalFolders:', {...globalFolders});
     folderDebugMode = false; // Existing flag
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Set folderDebugMode (existing) to false.');
-
+    folderLog('createFolders: Set folderDebugMode (existing) to false.');
     const autostartActual = $('.ct-name .appname').map(function() {return $(this).text()}).get().filter(x => autostartOrder.includes(x));
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: autostartActual (from DOM)', autostartActual);
-
+    folderLog('createFolders: autostartActual (from DOM)', autostartActual);
     if(!(autostartOrder.length === autostartActual.length && autostartOrder.every((value, index) => value === autostartActual[index]))) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.warn('[FV2_DEBUG] createFolders: Autostart order is incorrect. Updating UI elements.');
+        folderWarn('createFolders: Autostart order is incorrect. Updating UI elements.');
         $('.nav-item.AutostartOrder.util > a > b').removeClass('green-text').addClass('red-text');
         $('.nav-item.AutostartOrder.util > a > span').text($.i18n('incorrect-autostart'));
         $('.nav-item.AutostartOrder.util > a').attr('title', $.i18n('incorrect-autostart'));
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Autostart order is correct.');
+        folderLog('createFolders: Autostart order is correct.');
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Exit');
+    folderLog('createFolders: Exit');
 };
 
 /**
@@ -188,18 +172,11 @@ const createFolders = async () => {
  * @returns {number} the number of element removed before the folder
  */
 const createFolder = (folder, id, positionInMainOrder, liveOrderArray, containersInfo, foldersDone) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Entry`, { folder: JSON.parse(JSON.stringify(folder)), id, positionInMainOrder, orderInitialSnapshot: [...liveOrderArray], containersInfoKeys: Object.keys(containersInfo).length, foldersDone: [...foldersDone] });
-
+    folderLog(`createFolder (id: ${id}): Entry`, { folder: JSON.parse(JSON.stringify(folder)), id, positionInMainOrder, orderInitialSnapshot: [...liveOrderArray], containersInfoKeys: Object.keys(containersInfo).length, foldersDone: [...foldersDone] });
     // --- Store a snapshot of the live order array AT THE START of this folder's processing ---
     // This snapshot is crucial for correctly calculating `remBefore` based on original positions.
     const orderSnapshotAtFolderStart = [...liveOrderArray];
-    if (FOLDER_VIEW_DEBUG_MODE && id === "2l2rPNIkZHWN5WLqAuzPaCZHSqI") { // Specific log for Network folder
-        console.log(`[FV2_DEBUG] createFolder (Network folder ENTRY): folder.containers from input arg =`, JSON.parse(JSON.stringify(folder.containers)));
-        console.log(`[FV2_DEBUG] createFolder (Network folder ENTRY): folder.regex from input arg = "${folder.regex}"`);
-        console.log(`[FV2_DEBUG] createFolder (Network folder ENTRY): orderSnapshotAtFolderStart (liveOrderArray copy) =`, [...orderSnapshotAtFolderStart]);
-    }
-
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Dispatching docker-pre-folder-creation event.`);
+    folderLog(`createFolder (id: ${id}): Dispatching docker-pre-folder-creation event.`);
     folderEvents.dispatchEvent(new CustomEvent('docker-pre-folder-creation', {detail: {
         folder: folder, // Be aware: if 'folder' object is modified by listeners, it affects this function
         id: id,
@@ -216,28 +193,25 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
     let autostartStarted = 0;
     let managed = 0;
     let remBefore = 0; // This will count items *from this folder* that were originally before its placeholder
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Initialized local state variables`, { upToDate, started, autostart, autostartStarted, managed, remBefore });
-
+    folderLog(`createFolder (id: ${id}): Initialized local state variables`, { upToDate, started, autostart, autostartStarted, managed, remBefore });
     const advanced = $.cookie('docker_listview_mode') == 'advanced';
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Advanced view enabled: ${advanced}`);
-
+    folderLog(`createFolder (id: ${id}): Advanced view enabled: ${advanced}`);
     // --- Correctly build combinedContainers ---
     const originalContainersFromDefinition = Array.isArray(folder.containers) ? [...folder.containers] : [];
     let combinedContainers = [...originalContainersFromDefinition];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Initial containers from definition for combinedContainers:`, [...originalContainersFromDefinition]);
-
+    folderLog(`createFolder (id: ${id}): Initial containers from definition for combinedContainers:`, [...originalContainersFromDefinition]);
     if (folder.regex && typeof folder.regex === 'string' && folder.regex.trim() !== "") {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Regex defined: '${folder.regex}'. Filtering orderSnapshotAtFolderStart.`);
+        folderLog(`createFolder (id: ${id}): Regex defined: '${folder.regex}'. Filtering orderSnapshotAtFolderStart.`);
         try {
             const re = new RegExp(folder.regex);
             const regexMatches = orderSnapshotAtFolderStart.filter(el => containersInfo[el] && re.test(el) && !combinedContainers.includes(el));
             regexMatches.forEach(match => combinedContainers.push(match));
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Regex matches added:`, regexMatches, "Combined containers after regex:", [...combinedContainers]);
+            folderLog(`createFolder (id: ${id}): Regex matches added:`, regexMatches, "Combined containers after regex:", [...combinedContainers]);
         } catch (e) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] createFolder (id: ${id}): Invalid regex '${folder.regex}':`, e);
+            folderWarn(`createFolder (id: ${id}): Invalid regex '${folder.regex}':`, e);
         }
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE && folder.regex) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Regex is present but empty or invalid, skipping regex matching.`);
+        if (folder.regex) folderLog(`createFolder (id: ${id}): Regex is present but empty or invalid, skipping regex matching.`);
     }
 
     // Accept the legacy 'folder.view2' label as well as the current one -- existing
@@ -250,18 +224,15 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
     });
     labelMatches.forEach(match => combinedContainers.push(match));
 
-    if (FOLDER_VIEW_DEBUG_MODE) {
-        console.log(`[FV2_DEBUG] createFolder (id: ${id}): Containers matched by 'unraid-folderview' label ('${folder.name}'):`, labelMatches);
-        console.log(`[FV2_DEBUG] createFolder (id: ${id}): Final combined list of containers for folder processing (combinedContainers):`, [...combinedContainers]);
-    }
+    folderLog(`createFolder (id: ${id}): Containers matched by 'unraid-folderview' label ('${folder.name}'):`, labelMatches);
+    folderLog(`createFolder (id: ${id}): Final combined list of containers for folder processing (combinedContainers):`, [...combinedContainers]);
     // --- End of combinedContainers build ---
 
     const colspan = document.querySelector("#docker_containers > thead > tr").childElementCount - 5;
     const fld = `<tr class="sortable folder-id-${id} ${folder.settings.preview_hover ? 'hover' : ''} folder"><td class="ct-name folder-name"><div class="folder-name-sub"><i class="fa fa-arrows-v mover orange-text"></i><span class="outer folder-outer"><span id="${id}" onclick="addDockerFolderContext('${id}')" class="hand folder-hand"><img src="${htmlEscape(folder.icon)}" class="img folder-img" onerror='this.src="/plugins/dynamix.docker.manager/images/question.png"'></span><span class="inner folder-inner"><span class="appname" style="display: none;"><a>folder-${id}</a></span><a class="exec folder-appname" onclick='editFolder("${id}")'>${htmlEscape(folder.name)}</a><br><i id="load-folder-${id}" class="fa fa-square stopped red-text folder-load-status"></i><span class="state folder-state"> ${$.i18n('stopped')}</span></span></span><button class="dropDown-${id} folder-dropdown" onclick="dropDownButton('${id}')" ><i class="fa fa-chevron-down" aria-hidden="true"></i></button></div></td><td class="updatecolumn folder-update"><span class="green-text folder-update-text"><i class="fa fa-check fa-fw"></i> ${$.i18n('up-to-date')}</span><div class="advanced" style="display: ${advanced ? 'block' : 'none'};"><a class="exec" onclick="forceUpdateFolder('${id}');"><span style="white-space:nowrap;"><i class="fa fa-cloud-download fa-fw"></i> ${$.i18n('force-update')}</span></a></div></td><td colspan="${colspan}"><div class="folder-storage"></div><div class="folder-preview"></div></td><td class="advanced folder-advanced" ${advanced ? 'style="display: table-cell;"' : ''}><span class="cpu-folder-${id} folder-cpu">0%</span><div class="usage-disk mm folder-load"><span id="cpu-folder-${id}" class="folder-cpu-bar" style="width:0%"></span><span></span></div><br><span class="mem-folder-${id} folder-mem">0 / 0</span></td><td class="folder-autostart"><input type="checkbox" id="folder-${id}-auto" class="autostart" style="display:none"><div style="clear:left"></div></td><td></td></tr>`;
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): colspan=${colspan}. Generated folder HTML (fld).`);
-
+    folderLog(`createFolder (id: ${id}): colspan=${colspan}. Generated folder HTML (fld).`);
     if (positionInMainOrder === 0) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Inserting folder HTML at position 0 (before).`);
+        folderLog(`createFolder (id: ${id}): Inserting folder HTML at position 0 (before).`);
         $('#docker_list > tr.sortable').eq(0).before($(fld)); // Always eq(0) for 'before' the first sortable
     } else {
         // Find the actual DOM element that is currently at positionInMainOrder - 1 in the *visible sortable list*
@@ -269,35 +240,33 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
         // A safer bet is to find the *last processed item* or *first non-folder item* if the folder is inserted later.
         // For now, using the direct index, assuming other sortables are still in place.
         if ($('#docker_list > tr.sortable').length > 0 && positionInMainOrder > 0) {
-             if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Inserting folder HTML at position ${positionInMainOrder} (after eq ${positionInMainOrder-1} of current sortables).`);
+             folderLog(`createFolder (id: ${id}): Inserting folder HTML at position ${positionInMainOrder} (after eq ${positionInMainOrder-1} of current sortables).`);
              $('#docker_list > tr.sortable').eq(positionInMainOrder - 1).after($(fld));
         } else if ($('#docker_list > tr.sortable').length === 0 && positionInMainOrder === 0) {
             // If no sortables exist yet (e.g., first folder, all others are new)
-             if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): No sortables found, inserting folder at the beginning of #docker_list.`);
+             folderLog(`createFolder (id: ${id}): No sortables found, inserting folder at the beginning of #docker_list.`);
             $('#docker_list').prepend($(fld));
         } else {
-             if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}): Could not determine insertion point for folder. Position: ${positionInMainOrder}, Sortables count: ${$('#docker_list > tr.sortable').length}`);
+             folderWarn(`createFolder (id: ${id}): Could not determine insertion point for folder. Position: ${positionInMainOrder}, Sortables count: ${$('#docker_list > tr.sortable').length}`);
              // Fallback: append to the list if other logic fails
              $('#docker_list').append($(fld));
         }
     }
 
     $(`#folder-${id}-auto`).switchButton({ labels_placement: 'right', off_label: $.i18n('off'), on_label: $.i18n('on'), checked: false });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Initialized autostart switchButton.`);
-
+    folderLog(`createFolder (id: ${id}): Initialized autostart switchButton.`);
     if(folder.settings.preview_border) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Setting preview border color to ${folder.settings.preview_border_color}.`);
+        folderLog(`createFolder (id: ${id}): Setting preview border color to ${folder.settings.preview_border_color}.`);
         $(`tr.folder-id-${id}  div.folder-preview`).css('border', `solid ${folder.settings.preview_border_color} 1px`);
     }
     $(`tr.folder-id-${id} div.folder-preview`).addClass(`folder-preview-${folder.settings.preview}`);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Added class folder-preview-${folder.settings.preview} to preview div.`);
-
+    folderLog(`createFolder (id: ${id}): Added class folder-preview-${folder.settings.preview} to preview div.`);
     let addPreview;
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Selecting addPreview function based on folder.settings.preview = ${folder.settings.preview}. Context setting: ${folder.settings.context}`);
+    folderLog(`createFolder (id: ${id}): Selecting addPreview function based on folder.settings.preview = ${folder.settings.preview}. Context setting: ${folder.settings.context}`);
     switch (folder.settings.preview) {
         case 1:
             addPreview = (folderTrId, ctid, autostart) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 1 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
+                folderLog(`addPreview (case 1 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
                 let clone = $(`tr.folder-id-${folderTrId} div.folder-storage > tr > td.ct-name > span.outer:last`).clone();
                 clone.find(`span.state`)[0].innerHTML = clone.find(`span.state`)[0].innerHTML.split("<br>")[0];
                 $(`tr.folder-id-${folderTrId} div.folder-preview`).append(clone.addClass(`${autostart ? 'autostart' : ''}`));
@@ -307,25 +276,25 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                     tmpId = $(`tr.folder-id-${folderTrId} div.folder-preview > span.outer:last > span.hand`);
                     tmpId.attr("id", "folder-preview-" + ctid);
                     tmpId.removeAttr("onclick");
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 1 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
+                    folderLog(`addPreview (case 1 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
                     if(folder.settings.context === 2) { return tmpId; }
                 }
             }; break;
         case 2:
             addPreview = (folderTrId, ctid, autostart) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 2 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
+                folderLog(`addPreview (case 2 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
                 $(`tr.folder-id-${folderTrId} div.folder-preview`).append($(`tr.folder-id-${folderTrId} div.folder-storage > tr > td.ct-name > span.outer > span.hand:last`).clone().addClass(`${autostart ? 'autostart' : ''}`));
                 if(folder.settings.context === 2 || folder.settings.context === 0) {
                     let tmpId = $(`tr.folder-id-${folderTrId} div.folder-preview > span.hand:last`);
                     tmpId.attr("id", "folder-preview-" + ctid);
                     tmpId.removeAttr("onclick");
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 2 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
+                    folderLog(`addPreview (case 2 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
                     if(folder.settings.context === 2) { return tmpId; }
                 }
             }; break;
         case 3:
             addPreview = (folderTrId, ctid, autostart) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 3 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
+                folderLog(`addPreview (case 3 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
                 let clone = $(`tr.folder-id-${folderTrId} div.folder-storage > tr > td.ct-name > span.outer > span.inner:last`).clone();
                 clone.find(`span.state`)[0].innerHTML = clone.find(`span.state`)[0].innerHTML.split("<br>")[0];
                 $(`tr.folder-id-${folderTrId} div.folder-preview`).append(clone.addClass(`${autostart ? 'autostart' : ''}`));
@@ -335,13 +304,13 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                     tmpId = $(`tr.folder-id-${folderTrId} div.folder-preview > span.inner:last > span.appname > a.exec`);
                     tmpId.attr("id", "folder-preview-" + ctid);
                     tmpId.removeAttr("onclick");
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 3 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
+                    folderLog(`addPreview (case 3 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
                     if(folder.settings.context === 2) { return tmpId; }
                 }
             }; break;
         case 4:
             addPreview = (folderTrId, ctid, autostart) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 4 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
+                folderLog(`addPreview (case 4 for ${folderTrId}): ctid=${ctid}, autostart=${autostart}`);
                 let lstSpan = $(`tr.folder-id-${folderTrId} div.folder-preview > span.outer:last`);
                 if(!lstSpan[0] || lstSpan.children().length >= 2) {
                     $(`tr.folder-id-${folderTrId} div.folder-preview`).append($('<span class="outer"></span>'));
@@ -353,61 +322,55 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                     let tmpId = $(`tr.folder-id-${folderTrId} div.folder-preview span.inner:last > span.appname > a.exec`);
                     tmpId.attr("id", "folder-preview-" + ctid);
                     tmpId.removeAttr("onclick");
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addPreview (case 4 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
+                    folderLog(`addPreview (case 4 for ${folderTrId}): Context is ${folder.settings.context}. Modified preview element for tooltipster:`, tmpId);
                     if(folder.settings.context === 2) {
                         return tmpId.length>0 ? tmpId : $(`tr.folder-id-${folderTrId} div.folder-preview span.inner:last > span.appname`).attr("id", "folder-preview-" + ctid);
                     }
                 }
             }; break;
         default:
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Default case for addPreview (no preview).`);
+            folderLog(`createFolder (id: ${id}): Default case for addPreview (no preview).`);
             addPreview = () => { };
             break;
     }
 
     let newFolder = {};
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Initialized newFolder for processed containers.`);
-
+    folderLog(`createFolder (id: ${id}): Initialized newFolder for processed containers.`);
     // Note: `cutomOrder` is not used in the critical logic below, but kept for potential other uses or debugging.
     const mappedFoldersDone = foldersDone.map(e => 'folder-'+e);
     const cutomOrder = orderSnapshotAtFolderStart.filter((e) => { // Based on snapshot, as original code
         return e && (mappedFoldersDone.includes(e) || !(folderRegex.test(e) && e !== `folder-${id}`));
     });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): (Informational) Filtered cutomOrder based on orderSnapshotAtFolderStart:`, [...cutomOrder]);
-
-
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Starting loop to process ${combinedContainers.length} combinedContainers.`);
+    folderLog(`createFolder (id: ${id}): (Informational) Filtered cutomOrder based on orderSnapshotAtFolderStart:`, [...cutomOrder]);
+    folderLog(`createFolder (id: ${id}): Starting loop to process ${combinedContainers.length} combinedContainers.`);
     for (const container_name_in_folder of combinedContainers) {
 
         const ct = containersInfo[container_name_in_folder];
         if (!ct) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] createFolder (id: ${id}): CRITICAL - Container info for '${container_name_in_folder}' not found in containersInfo! Skipping further processing for this container.`);
+            folderWarn(`createFolder (id: ${id}): CRITICAL - Container info for '${container_name_in_folder}' not found in containersInfo! Skipping further processing for this container.`);
             continue; // Skip this container if info is missing
         }
         const indexInCustomOrder = cutomOrder.indexOf(container_name_in_folder);
         const indexInLiveOrderArray = liveOrderArray.indexOf(container_name_in_folder);
 
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Processing container from combinedContainers: ${container_name_in_folder}`);
-
+        folderLog(`createFolder (id: ${id}): Processing container from combinedContainers: ${container_name_in_folder}`);
         const originalIndexOfContainerInSnapshot = orderSnapshotAtFolderStart.indexOf(container_name_in_folder);
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: originalIndexOfContainerInSnapshot=${originalIndexOfContainerInSnapshot}, folder's positionInMainOrder=${positionInMainOrder}`);
-
+        folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: originalIndexOfContainerInSnapshot=${originalIndexOfContainerInSnapshot}, folder's positionInMainOrder=${positionInMainOrder}`);
         if (originalIndexOfContainerInSnapshot !== -1 && originalIndexOfContainerInSnapshot < positionInMainOrder) {
             remBefore++;
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Original index ${originalIndexOfContainerInSnapshot} < folder position ${positionInMainOrder}. Incremented remBefore to ${remBefore}.`);
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Original index ${originalIndexOfContainerInSnapshot} < folder position ${positionInMainOrder}. Incremented remBefore to ${remBefore}.`);
         }
 
         let $containerTR = $(`#ct-${container_name_in_folder}`);
         if (!$containerTR.length || !$containerTR.hasClass('sortable')) {
-            if(FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: TR not found by ID or not sortable. Fallback search...`);
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: TR not found by ID or not sortable. Fallback search...`);
             $containerTR = $("#docker_list > tr.sortable").filter(function() {
                 return $(this).find("td.ct-name .appname a").text().trim() === container_name_in_folder;
             }).first();
         }
 
         if ($containerTR.length) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Found its TR element in the main list.`);
-
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Found its TR element in the main list.`);
             folderEvents.dispatchEvent(new CustomEvent('docker-pre-folder-preview', {detail: {
                 folder: folder,
                 id: id,
@@ -424,29 +387,26 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
             $(`tr.folder-id-${id} div.folder-storage`).append(
                 $containerTR.addClass(`folder-${id}-element folder-element`).removeClass('sortable ui-sortable-handle')
             );
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Moved TR to folder storage.`);
-
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Moved TR to folder storage.`);
             const currentIndexInLiveList = liveOrderArray.indexOf(container_name_in_folder);
             if (currentIndexInLiveList !== -1) {
                 liveOrderArray.splice(currentIndexInLiveList, 1);
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Spliced from liveOrderArray. New liveOrderArray length: ${liveOrderArray.length}`);
+                folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Spliced from liveOrderArray. New liveOrderArray length: ${liveOrderArray.length}`);
             } else {
-                if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}): Container ${container_name_in_folder} was MOVED FROM DOM but NOT FOUND IN liveOrderArray for splicing. This might indicate it was already spliced by a previous folder or logic error.`);
+                folderWarn(`createFolder (id: ${id}): Container ${container_name_in_folder} was MOVED FROM DOM but NOT FOUND IN liveOrderArray for splicing. This might indicate it was already spliced by a previous folder or logic error.`);
             }
 
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Container info (ct):`, JSON.parse(JSON.stringify(ct)));
-
-
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Container info (ct):`, JSON.parse(JSON.stringify(ct)));
             let CPU = []; let MEM = []; let charts = []; let tootltipObserver;
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Initialized CPU, MEM, charts, tootltipObserver for tooltip.`);
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Initialized CPU, MEM, charts, tootltipObserver for tooltip.`);
             const graphListener = (e) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] graphListener (for ct: ${ct.shortId}): Received message:`, e.data ? e.data : e); // SSE e.data
+                folderLog(`graphListener (for ct: ${ct.shortId}): Received message:`, e.data ? e.data : e); // SSE e.data
                 let now = Date.now();
                 try {
                     let dataToParse = e.data ? e.data : e; // Handle SSE vs direct string
                     let loadMatch = dataToParse.match(new RegExp(`^${ct.shortId}\;.*\;.*\ \/\ .*$`, 'm'));
                     if (!loadMatch) {
-                        if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] graphListener (for ct: ${ct.shortId}): No match for regex. Data: `, dataToParse);
+                        folderWarn(`graphListener (for ct: ${ct.shortId}): No match for regex. Data: `, dataToParse);
                         CPU.push({ x: now, y: 0 });
                         MEM.push({ x: now, y: 0 });
                         return;
@@ -465,9 +425,9 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                         x: now,
                         y: load.mem
                     });
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] graphListener (for ct: ${ct.shortId}): Parsed load:`, {cpu: load.cpu, mem: load.mem}, "Pushed to CPU/MEM arrays.");
+                    folderLog(`graphListener (for ct: ${ct.shortId}): Parsed load:`, {cpu: load.cpu, mem: load.mem}, "Pushed to CPU/MEM arrays.");
                 } catch (error) {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] graphListener (for ct: ${ct.shortId}): Error parsing load data.`, error, "Original data:", e.data ? e.data : e);
+                    folderWarn(`graphListener (for ct: ${ct.shortId}): Error parsing load data.`, error, "Original data:", e.data ? e.data : e);
                     CPU.push({
                         x: now,
                         y: 0
@@ -481,17 +441,15 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 for (const chart of charts) {
                     chart.update('quiet');
                 }
-                 if (FOLDER_VIEW_DEBUG_MODE && charts.length > 0) console.log(`[FV2_DEBUG] graphListener (for ct: ${ct.shortId}): Updated ${charts.length} charts.`);
+                 if (charts.length > 0) folderLog(`graphListener (for ct: ${ct.shortId}): Updated ${charts.length} charts.`);
             };
 
             const tooltip_trigger_element = addPreview(id, ct.shortId, !(ct.info.State.Autostart === false));
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${ct.shortId}: Called addPreview. Returned tooltip_trigger_element:`, tooltip_trigger_element ? tooltip_trigger_element[0] : 'null/undefined');
-        
+            folderLog(`createFolder (id: ${id}), container ${ct.shortId}: Called addPreview. Returned tooltip_trigger_element:`, tooltip_trigger_element ? tooltip_trigger_element[0] : 'null/undefined');
             $(`tr.folder-id-${id} div.folder-preview span.inner > span.appname`).css("width", folder.settings.preview_text_width || '');
-            if (FOLDER_VIEW_DEBUG_MODE && folder.settings.preview_text_width) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Set preview text width to ${folder.settings.preview_text_width}.`);
-
+            if (folder.settings.preview_text_width) folderLog(`createFolder (id: ${id}): Set preview text width to ${folder.settings.preview_text_width}.`);
             if(tooltip_trigger_element && tooltip_trigger_element.length > 0) {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${ct.shortId}: tooltip_trigger_element is valid. Initializing tooltipster.`);
+                folderLog(`createFolder (id: ${id}), container ${ct.shortId}: tooltip_trigger_element is valid. Initializing tooltipster.`);
                 $(tooltip_trigger_element).tooltipster({
                     interactive: true,
                     theme: ['tooltipster-docker-folder'],
@@ -503,13 +461,11 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                         // helper: An object, helper.origin is the triggering element.
                         const origin = helper.origin; // Get the triggering element
 
-                        if (FOLDER_VIEW_DEBUG_MODE) {
-                            console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): functionBefore. Instance:`, instance, "Helper:", helper, "Origin:", origin);
-                            console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Current folder settings for context:`, {...folder.settings});
-                        }
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): functionBefore. Instance:`, instance, "Helper:", helper, "Origin:", origin);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Current folder settings for context:`, {...folder.settings});
 
                         // Dispatch your custom event
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-before event.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-before event.`);
                         folderEvents.dispatchEvent(new CustomEvent('docker-tooltip-before', {detail: {
                             folder: folder,
                             id: id, // Folder ID
@@ -522,7 +478,7 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                             }
                         }}));
 
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): functionBefore completed. Allowing tooltip to proceed by default.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): functionBefore completed. Allowing tooltip to proceed by default.`);
                         // By not returning false, Tooltipster should proceed.
                     },
                     functionReady: function(instance, helper) {
@@ -532,9 +488,8 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                         const triggerOriginEl = helper.origin;  // This is the jQuery object of the element that triggered the tooltip
                         const tooltipDomEl = helper.tooltip;  // This is the jQuery object of the tooltip's outermost DOM element
 
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): functionReady. Instance:`, instance, "Helper:", helper, "Trigger Origin Element:", triggerOriginEl[0], "Tooltip DOM Element:", tooltipDomEl[0]);
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-ready-start event.`);
-                        
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): functionReady. Instance:`, instance, "Helper:", helper, "Trigger Origin Element:", triggerOriginEl[0], "Tooltip DOM Element:", tooltipDomEl[0]);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-ready-start event.`);
                         folderEvents.dispatchEvent(new CustomEvent('docker-tooltip-ready-start', {detail: {
                             folder: folder,
                             id: id,
@@ -588,17 +543,16 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                                 }
                             }
                         };
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Chart.js options:`, options, "Graph mode setting:", folder.settings.context_graph);
-
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Chart.js options:`, options, "Graph mode setting:", folder.settings.context_graph);
                         charts = []; 
                         switch (folder.settings.context_graph) {
                             case 0: 
-                                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Graph mode 0 (None).`);
+                                folderLog(`Tooltipster (ct: ${ct.shortId}): Graph mode 0 (None).`);
                                 diabled = [0, 1, 2]; 
                                 active = 3; 
                                 break;
                             case 2: 
-                                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Graph mode 2 (Split). Creating CPU and MEM charts.`);
+                                folderLog(`Tooltipster (ct: ${ct.shortId}): Graph mode 2 (Split). Creating CPU and MEM charts.`);
                                 diabled = [0]; 
                                 active = 1; 
                                 try {
@@ -612,13 +566,13 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                                         data: { datasets: [ { label: 'MEM', data: MEM, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-mem'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-mem'), tension: 0.4, pointRadius: 0, borderWidth: 1 } ] },
                                         options: options
                                     }));
-                                     if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Split charts created. CPU canvas:`, $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0), "MEM canvas:", $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
+                                     folderLog(`Tooltipster (ct: ${ct.shortId}): Split charts created. CPU canvas:`, $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0), "MEM canvas:", $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
                                 } catch(e) {
-                                    if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Error creating split charts:`, e);
+                                    folderWarn(`Tooltipster (ct: ${ct.shortId}): Error creating split charts:`, e);
                                 }
                                 break;
                             case 3: 
-                                 if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Graph mode 3 (CPU only). Creating CPU chart.`);
+                                 folderLog(`Tooltipster (ct: ${ct.shortId}): Graph mode 3 (CPU only). Creating CPU chart.`);
                                 diabled = [0, 2]; 
                                 active = 1; 
                                 try {
@@ -627,13 +581,13 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                                         data: { datasets: [ { label: 'CPU', data: CPU, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-cpu'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-cpu'), tension: 0.4, pointRadius: 0, borderWidth: 1 } ] },
                                         options: options
                                     }));
-                                     if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): CPU chart created. Canvas:`, $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
+                                     folderLog(`Tooltipster (ct: ${ct.shortId}): CPU chart created. Canvas:`, $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
                                 } catch(e) {
-                                     if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Error creating CPU chart:`, e);
+                                     folderWarn(`Tooltipster (ct: ${ct.shortId}): Error creating CPU chart:`, e);
                                 }
                                 break;
                             case 4: 
-                                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Graph mode 4 (MEM only). Creating MEM chart.`);
+                                folderLog(`Tooltipster (ct: ${ct.shortId}): Graph mode 4 (MEM only). Creating MEM chart.`);
                                 diabled = [0, 1]; 
                                 active = 2; 
                                 try {
@@ -642,14 +596,14 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                                         data: { datasets: [ { label: 'MEM', data: MEM, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-mem'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--folder-view2-graph-mem'), tension: 0.4, pointRadius: 0, borderWidth: 1 } ] },
                                         options: options
                                     }));
-                                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): MEM chart created. Canvas:`, $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
+                                    folderLog(`Tooltipster (ct: ${ct.shortId}): MEM chart created. Canvas:`, $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
                                 } catch(e) {
-                                    if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Error creating MEM chart:`, e);
+                                    folderWarn(`Tooltipster (ct: ${ct.shortId}): Error creating MEM chart:`, e);
                                 }
                                 break;
                             case 1: 
                             default:
-                                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Graph mode 1 (Combined) or default. Creating combined chart.`);
+                                folderLog(`Tooltipster (ct: ${ct.shortId}): Graph mode 1 (Combined) or default. Creating combined chart.`);
                                 diabled = [1, 2]; 
                                 active = 0; 
                                 try {
@@ -663,23 +617,21 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                                         },
                                         options: options
                                     }));
-                                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Combined chart created. Canvas:`, $(`.comb-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
+                                    folderLog(`Tooltipster (ct: ${ct.shortId}): Combined chart created. Canvas:`, $(`.comb-grapth-${ct.shortId} > canvas`, tooltipDomEl).get(0));
                                 } catch(e) {
-                                     if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Error creating combined chart:`, e);
+                                     folderWarn(`Tooltipster (ct: ${ct.shortId}): Error creating combined chart:`, e);
                                 }
                                 break;
                         };
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Tab states: disabled=${diabled}, active=${active}. Charts array length: ${charts.length}`);
-
-                        if (FOLDER_VIEW_DEBUG_MODE) {
-                            console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Canvas check inside functionReady:`);
-                            console.log(`  .comb-grapth-${ct.shortId} > canvas:`, $(`.comb-grapth-${ct.shortId} > canvas`, tooltipDomEl).length);
-                            console.log(`  .cpu-grapth-${ct.shortId} > canvas:`, $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).length);
-                            console.log(`  .mem-grapth-${ct.shortId} > canvas:`, $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).length);
-                        }
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Tab states: disabled=${diabled}, active=${active}. Charts array length: ${charts.length}`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Canvas check inside functionReady:`, {
+                            comb: $(`.comb-grapth-${ct.shortId} > canvas`, tooltipDomEl).length,
+                            cpu:  $(`.cpu-grapth-${ct.shortId} > canvas`, tooltipDomEl).length,
+                            mem:  $(`.mem-grapth-${ct.shortId} > canvas`, tooltipDomEl).length
+                        });
 
                         tootltipObserver = new MutationObserver((mutationList, observer) => {
-                            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] tootltipObserver (for ct: ${ct.shortId}): Mutation observed for CPU text.`, mutationList);
+                            folderLog(`tootltipObserver (for ct: ${ct.shortId}): Mutation observed for CPU text.`, mutationList);
                             for (const mutation of mutationList) {
                                 $(`.preview-outbox-${ct.shortId} span#cpu-${ct.shortId}`, tooltipDomEl).css('width',  mutation.target.textContent) 
                             }
@@ -688,13 +640,13 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                         const cpuTextElement = $(`.preview-outbox-${ct.shortId} span.cpu-${ct.shortId}`, tooltipDomEl).get(0); 
                         if (cpuTextElement) {
                             tootltipObserver.observe(cpuTextElement, {childList: true});
-                            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): tootltipObserver observing CPU text element.`, cpuTextElement);
+                            folderLog(`Tooltipster (ct: ${ct.shortId}): tootltipObserver observing CPU text element.`, cpuTextElement);
                         } else {
-                            if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): CPU text element for tootltipObserver not found.`);
+                            folderWarn(`Tooltipster (ct: ${ct.shortId}): CPU text element for tootltipObserver not found.`);
                         }
 
                         if($(`.preview-outbox-${ct.shortId} .status-autostart`, tooltipDomEl).children().length === 1) { 
-                            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Initializing switchButton and tabs for tooltip content.`);
+                            folderLog(`Tooltipster (ct: ${ct.shortId}): Initializing switchButton and tabs for tooltip content.`);
                             $(`.preview-outbox-${ct.shortId} .status-autostart > input[type='checkbox']`, tooltipDomEl).switchButton({ labels_placement: 'right', off_label: $.i18n('off'), on_label: $.i18n('on'), checked: !(ct.info.State.Autostart === false) }); 
                             $(`.preview-outbox-${ct.shortId} .info-section`, tooltipDomEl).tabs({ 
                                 heightStyle: 'auto',
@@ -703,13 +655,12 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                             });
                             $(`.preview-outbox-${ct.shortId} table > tbody div.status-autostart > input[type="checkbox"]`, tooltipDomEl).on("change", advancedAutostart); 
                         } else {
-                             if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Autostart switch placeholder not found as expected in tooltip.`);
+                             folderWarn(`Tooltipster (ct: ${ct.shortId}): Autostart switch placeholder not found as expected in tooltip.`);
                         }
 
                         dockerload.addEventListener('message', graphListener);
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Added graphListener to dockerload SSE.`);
-
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-ready-end event.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Added graphListener to dockerload SSE.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-ready-end event.`);
                         folderEvents.dispatchEvent(new CustomEvent('docker-tooltip-ready-end', {detail: {
                             folder: folder,
                             id: id,
@@ -726,8 +677,8 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                     },
                     functionAfter: function(instance, helper) {
                         const origin = helper.origin;
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): functionAfter. Instance:`, instance, "Helper:", helper, "Origin:", origin);
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-after event.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): functionAfter. Instance:`, instance, "Helper:", helper, "Origin:", origin);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Dispatching docker-tooltip-after event.`);
                         folderEvents.dispatchEvent(new CustomEvent('docker-tooltip-after', {detail: {
                             folder: folder,
                             id: id,
@@ -741,16 +692,16 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                             }
                         }}));
                         dockerload.removeEventListener('message', graphListener);
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Removed graphListener from dockerload SSE.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Removed graphListener from dockerload SSE.`);
                         for (const chart of charts) {
                             chart.destroy();
                         }
-                        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Destroyed ${charts.length} charts.`);
+                        folderLog(`Tooltipster (ct: ${ct.shortId}): Destroyed ${charts.length} charts.`);
                         charts = []; 
                         if (tootltipObserver) {
                             tootltipObserver.disconnect();
                             tootltipObserver = undefined;
-                            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Tooltipster (ct: ${ct.shortId}): Disconnected and cleared tootltipObserver.`);
+                            folderLog(`Tooltipster (ct: ${ct.shortId}): Disconnected and cleared tootltipObserver.`);
                         }
                     },
                    content: $(`
@@ -827,7 +778,7 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                     `)
                 });
             } else {
-                 if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${ct.shortId}: tooltip_trigger_element is NOT valid. Tooltipster NOT initialized. This is likely the problem if folder.settings.context === 2.`);
+                 folderWarn(`createFolder (id: ${id}), container ${ct.shortId}: tooltip_trigger_element is NOT valid. Tooltipster NOT initialized. This is likely the problem if folder.settings.context === 2.`);
             }
 
             newFolder[container_name_in_folder] = {
@@ -837,13 +788,11 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 update: ct.info.State.Updated === false,
                 managed: ct.info.State.manager === 'dockerman'
             };
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Stored in newFolder:`, JSON.parse(JSON.stringify(newFolder[container_name_in_folder])));
-
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Stored in newFolder:`, JSON.parse(JSON.stringify(newFolder[container_name_in_folder])));
             const elementForPreviewOpts = $(`tr.folder-id-${id} div.folder-preview > span:last`); // Re-check if this is always correct
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Preview element for options:`, elementForPreviewOpts[0]);
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Preview element for options:`, elementForPreviewOpts[0]);
             let sel_preview_opt;
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Applying preview options based on folder.settings:`, JSON.parse(JSON.stringify(folder.settings)));
-         
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Applying preview options based on folder.settings:`, JSON.parse(JSON.stringify(folder.settings)));
             const $previewElementTarget = $(`tr.folder-id-${id} div.folder-preview > span:last`); // Or elementForPreviewOpts if you prefer
             let $targetForAppend; // Used for WebUI, Console, Logs icons
 
@@ -854,9 +803,9 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 }
                 if ($imgToGrayscale.length) {
                     $imgToGrayscale.css('filter', 'grayscale(100%)');
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Applied grayscale to preview image.`);
+                    folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Applied grayscale to preview image.`);
                 } else {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Grayscale: Could not find image in preview element.`);
+                    folderWarn(`createFolder (id: ${id}), container ${container_name_in_folder}: Grayscale: Could not find image in preview element.`);
                 }
             }
 
@@ -868,9 +817,9 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 if ($appNameSpan.length) {
                     $appNameSpan.addClass('orange-text');
                     $appNameSpan.children('a.exec').addClass('orange-text');
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Applied orange-text for update status to preview appname.`);
+                    folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Applied orange-text for update status to preview appname.`);
                 } else {
-                     if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Update style: Could not find appname span in preview element.`);
+                     folderWarn(`createFolder (id: ${id}), container ${container_name_in_folder}: Update style: Could not find appname span in preview element.`);
                 }
             }
 
@@ -883,18 +832,18 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
             if (folder.settings.preview_webui && ct.info.State.WebUi) {
                 if ($targetForAppend.length) {
                     $targetForAppend.append($(`<span class="folder-element-custom-btn folder-element-webui"><a href="${htmlEscape(ct.info.State.WebUi)}" target="_blank"><i class="fa fa-globe" aria-hidden="true"></i></a></span>`));
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Appended WebUI icon to preview.`);
+                    folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Appended WebUI icon to preview.`);
                 } else {
-                     if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: WebUI icon: Could not find target for append in preview element.`);
+                     folderWarn(`createFolder (id: ${id}), container ${container_name_in_folder}: WebUI icon: Could not find target for append in preview element.`);
                 }
             }
 
             if (folder.settings.preview_console) {
                 if ($targetForAppend.length) {
                     $targetForAppend.append($(`<span class="folder-element-custom-btn folder-element-console"><a href="#" onclick="event.preventDefault(); openTerminal('docker', '${ct.info.Name}', '${ct.info.Shell}');"><i class="fa fa-terminal" aria-hidden="true"></i></a></span>`));
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Appended Console icon to preview.`);
+                    folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Appended Console icon to preview.`);
                 } else {
-                     if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Console icon: Could not find target for append in preview element.`);
+                     folderWarn(`createFolder (id: ${id}), container ${container_name_in_folder}: Console icon: Could not find target for append in preview element.`);
                 }
             }
 
@@ -902,9 +851,9 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 if ($targetForAppend.length) {
                     // Use ct.info.Name for consistency, as 'container_name_in_folder' is the same.
                     $targetForAppend.append($(`<span class="folder-element-custom-btn folder-element-logs"><a href="#" onclick="event.preventDefault(); openTerminal('docker', '${ct.info.Name}', '.log');"><i class="fa fa-bars" aria-hidden="true"></i></a></span>`));
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Appended Logs icon to preview.`);
+                    folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Appended Logs icon to preview.`);
                 } else {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Logs icon: Could not find target for append in preview element.`);
+                    folderWarn(`createFolder (id: ${id}), container ${container_name_in_folder}: Logs icon: Could not find target for append in preview element.`);
                 }
             }
 
@@ -913,7 +862,7 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
             autostart += !(ct.info.State.Autostart === false) ? 1 : 0;
             autostartStarted += ((!(ct.info.State.Autostart === false)) && newFolder[container_name_in_folder].state) ? 1 : 0;
             managed += newFolder[container_name_in_folder].managed ? 1 : 0;
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}), container ${container_name_in_folder}: Updated folder aggregate states:`, { upToDate, started, autostart, autostartStarted, managed });
+            folderLog(`createFolder (id: ${id}), container ${container_name_in_folder}: Updated folder aggregate states:`, { upToDate, started, autostart, autostartStarted, managed });
             folderEvents.dispatchEvent(new CustomEvent('docker-post-folder-preview', {detail: {
                 folder: folder,
                 id: id,
@@ -934,69 +883,64 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
                 }
             }}));
         } else {
-            if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] createFolder (id: ${id}): Container TR for '${container_name_in_folder}' NOT FOUND in the sortable list. It might have been moved by another folder or an error occurred. Skipping.`);
+            folderWarn(`createFolder (id: ${id}): Container TR for '${container_name_in_folder}' NOT FOUND in the sortable list. It might have been moved by another folder or an error occurred. Skipping.`);
         }
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Finished loop over combinedContainers. Final remBefore for this folder = ${remBefore}`);
-
+    folderLog(`createFolder (id: ${id}): Finished loop over combinedContainers. Final remBefore for this folder = ${remBefore}`);
     $(`.folder-${id}-element:last`).css('border-bottom', `1px solid ${folder.settings.preview_border_color}`);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Set border-bottom on last .folder-${id}-element.`);
+    folderLog(`createFolder (id: ${id}): Set border-bottom on last .folder-${id}-element.`);
     folder.containers = newFolder;
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Replaced folder.containers with newFolder:`, JSON.parse(JSON.stringify(newFolder)));
-
+    folderLog(`createFolder (id: ${id}): Replaced folder.containers with newFolder:`, JSON.parse(JSON.stringify(newFolder)));
     $(`tr.folder-id-${id} div.folder-storage span.outer`).get().forEach((e) => {
         folderobserver.observe(e, folderobserverConfig);
     });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Attached folderobserver to .folder-storage span.outer elements.`);
+    folderLog(`createFolder (id: ${id}): Attached folderobserver to .folder-storage span.outer elements.`);
     $(`tr.folder-id-${id} div.folder-preview > span`).wrap('<div class="folder-preview-wrapper"></div>');
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Wrapped preview spans with .folder-preview-wrapper.`);
+    folderLog(`createFolder (id: ${id}): Wrapped preview spans with .folder-preview-wrapper.`);
     if(folder.settings.preview_vertical_bars) {
         $(`tr.folder-id-${id} div.folder-preview > div`).after(`<div class="folder-preview-divider" style="border-color: ${folder.settings.preview_border_color};"></div>`);
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Added preview_vertical_bars.`);
+        folderLog(`createFolder (id: ${id}): Added preview_vertical_bars.`);
     }
     if(folder.settings.update_column) {
         $(`tr.folder-id-${id} > td.updatecolumn`).next().attr('colspan',6).end().remove();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Handled update_column setting (removed column).`);
+        folderLog(`createFolder (id: ${id}): Handled update_column setting (removed column).`);
     }
     if(managed === 0) {
         $(`tr.folder-id-${id} > td.updatecolumn > div.advanced`).remove();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): No managed containers, removed advanced update div.`);
+        folderLog(`createFolder (id: ${id}): No managed containers, removed advanced update div.`);
     }
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Setting folder status indicators based on aggregate states.`);
+    folderLog(`createFolder (id: ${id}): Setting folder status indicators based on aggregate states.`);
     if (!upToDate) {
         $(`tr.folder-id-${id} > td.updatecolumn > span`).replaceWith($(`<div class="advanced" style="display: ${advanced ? 'block' : 'none'};"><span class="orange-text folder-update-text" style="white-space:nowrap;"><i class="fa fa-flash fa-fw"></i> ${$.i18n('update-ready')}</span></div>`));
         $(`tr.folder-id-${id} > td.updatecolumn > div.advanced:has(a)`).remove();
         $(`tr.folder-id-${id} > td.updatecolumn`).append($(`<a class="exec" onclick="updateFolder('${id}');"><span style="white-space:nowrap;"><i class="fa fa-cloud-download fa-fw"></i> ${$.i18n('apply-update')}</span></a>`));
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Set 'update ready' status in update column.`);
+        folderLog(`createFolder (id: ${id}): Set 'update ready' status in update column.`);
     }
     if (started) {
         $(`tr.folder-id-${id} i#load-folder-${id}`).attr('class', 'fa fa-play started green-text folder-load-status');
         $(`tr.folder-id-${id} span.folder-state`).text(`${started}/${Object.entries(folder.containers).length} ${$.i18n('started')}`);
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Set 'started' status. Count: ${started}/${Object.entries(folder.containers).length}.`);
+        folderLog(`createFolder (id: ${id}): Set 'started' status. Count: ${started}/${Object.entries(folder.containers).length}.`);
     }
     if (autostart) {
         $(`#folder-${id}-auto`).next().click();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): At least one container has autostart. Clicked folder autostart switch ON. Autostart count: ${autostart}`);
+        folderLog(`createFolder (id: ${id}): At least one container has autostart. Clicked folder autostart switch ON. Autostart count: ${autostart}`);
     }
 
     if(autostart === 0) { $(`tr.folder-id-${id}`).addClass('no-autostart'); }
     else if (autostart > 0 && autostartStarted === 0) { $(`tr.folder-id-${id}`).addClass('autostart-off'); }
     else if (autostart > 0 && autostartStarted > 0 && autostart !== autostartStarted) { $(`tr.folder-id-${id}`).addClass('autostart-partial'); }
     else if (autostart > 0 && autostartStarted > 0 && autostart === autostartStarted) { $(`tr.folder-id-${id}`).addClass('autostart-full'); }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Applied autostart status class. Autostart: ${autostart}, AutostartStarted: ${autostartStarted}.`);
-
+    folderLog(`createFolder (id: ${id}): Applied autostart status class. Autostart: ${autostart}, AutostartStarted: ${autostartStarted}.`);
     if(managed === 0) { $(`tr.folder-id-${id}`).addClass('no-managed'); }
     else if (managed > 0 && managed < Object.values(folder.containers).length) { $(`tr.folder-id-${id}`).addClass('managed-partial'); }
     else if (managed > 0 && managed === Object.values(folder.containers).length) { $(`tr.folder-id-${id}`).addClass('managed-full'); }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Applied managed status class. Managed: ${managed}, Total: ${Object.values(folder.containers).length}.`);
-
+    folderLog(`createFolder (id: ${id}): Applied managed status class. Managed: ${managed}, Total: ${Object.values(folder.containers).length}.`);
     folder.status = { upToDate, started, autostart, autostartStarted, managed, expanded: false };
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Set final folder.status object:`, JSON.parse(JSON.stringify(folder.status)));
-
+    folderLog(`createFolder (id: ${id}): Set final folder.status object:`, JSON.parse(JSON.stringify(folder.status)));
     $(`#folder-${id}-auto`).on("change", folderAutostart);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Attached 'change' event to folder autostart switch.`);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Dispatching docker-post-folder-creation event.`);
+    folderLog(`createFolder (id: ${id}): Attached 'change' event to folder autostart switch.`);
+    folderLog(`createFolder (id: ${id}): Dispatching docker-post-folder-creation event.`);
     folderEvents.dispatchEvent(new CustomEvent('docker-post-folder-creation', {detail: {
         folder: folder,
         id: id,
@@ -1006,7 +950,7 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
         foldersDone: foldersDone
     }}));
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolder (id: ${id}): Exit. Returning remBefore = ${remBefore}`);
+    folderLog(`createFolder (id: ${id}): Exit. Returning remBefore = ${remBefore}`);
     return remBefore;
 };
 
@@ -1014,14 +958,14 @@ const createFolder = (folder, id, positionInMainOrder, liveOrderArray, container
  * Function to hide all tooltips
  */
 const hideAllTips = () => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] hideAllTips: Entry');
+    folderLog('hideAllTips: Entry');
     let tips = $.tooltipster.instances();
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] hideAllTips: Found tooltipster instances:', tips.length);
+    folderLog('hideAllTips: Found tooltipster instances:', tips.length);
     $.each(tips, function(i, instance){
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] hideAllTips: Closing instance ${i}`);
+        folderLog(`hideAllTips: Closing instance ${i}`);
         instance.close();
     });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] hideAllTips: Exit');
+    folderLog('hideAllTips: Exit');
 };
 
 /**
@@ -1029,12 +973,12 @@ const hideAllTips = () => {
  * @param {*} el element passed by the event caller
  */
 const advancedAutostart = (el) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] advancedAutostart: Entry. Event target:', el.target);
+    folderLog('advancedAutostart: Entry. Event target:', el.target);
     const outbox = $(el.target).parents('.preview-outbox')[0];
     const ctid = outbox.className.match(/preview-outbox-([a-zA-Z0-9]+)/)[1]; // Ensure ctid is captured correctly
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] advancedAutostart: outbox:', outbox, `ctid: ${ctid}`);
+    folderLog('advancedAutostart: outbox:', outbox, `ctid: ${ctid}`);
     $(`#${ctid}`).parents('.folder-element').find('.switch-button-background').click();
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] advancedAutostart: Clicked main autostart switch for container ${ctid}. Exit.`);
+    folderLog(`advancedAutostart: Clicked main autostart switch for container ${ctid}. Exit.`);
 };
 
 /**
@@ -1042,13 +986,13 @@ const advancedAutostart = (el) => {
  * @param {*} el element passed by the event caller
  */
 const folderAutostart = (el) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] folderAutostart: Entry. Event target:', el.target);
+    folderLog('folderAutostart: Entry. Event target:', el.target);
     const status = el.target.checked;
     // The id is needded to get the containers, the checkbox has a id folder-${id}-auto, so split and take the second element
     const id = el.target.id.split('-')[1];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderAutostart: Folder ID: ${id}, New Status: ${status}`);
+    folderLog(`folderAutostart: Folder ID: ${id}, New Status: ${status}`);
     const containers = $(`.folder-${id}-element`);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderAutostart: Found ${containers.length} containers in folder ${id}.`);
+    folderLog(`folderAutostart: Found ${containers.length} containers in folder ${id}.`);
     for (const container of containers) {
         // Select the td with the switch inside
         const switchTd = $(container).children('td.advanced').next(); // This should be the autostart TD
@@ -1056,16 +1000,16 @@ const folderAutostart = (el) => {
 
         if (containerAutostartCheckbox) {
             const cstatus = containerAutostartCheckbox.checked;
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderAutostart: Container ${$(container).find('.appname a').text().trim() || 'N/A'}: current autostart=${cstatus}. Folder target status=${status}`);
+            folderLog(`folderAutostart: Container ${$(container).find('.appname a').text().trim() || 'N/A'}: current autostart=${cstatus}. Folder target status=${status}`);
             if ((status && !cstatus) || (!status && cstatus)) {
-                 if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderAutostart: Clicking autostart switch for container.`);
+                 folderLog(`folderAutostart: Clicking autostart switch for container.`);
                 $(switchTd).children('.switch-button-background').click();
             }
         } else {
-            if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] folderAutostart: Could not find autostart checkbox for a container in folder ${id}. TD element:`, switchTd[0]);
+            folderWarn(`folderAutostart: Could not find autostart checkbox for a container in folder ${id}. TD element:`, switchTd[0]);
         }
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderAutostart (id: ${id}): Exit.`);
+    folderLog(`folderAutostart (id: ${id}): Exit.`);
 };
 
 /**
@@ -1073,35 +1017,35 @@ const folderAutostart = (el) => {
  * @param {string} id the id of the folder
  */
 const dropDownButton = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Entry.`);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Dispatching docker-pre-folder-expansion event.`);
+    folderLog(`dropDownButton (id: ${id}): Entry.`);
+    folderLog(`dropDownButton (id: ${id}): Dispatching docker-pre-folder-expansion event.`);
     folderEvents.dispatchEvent(new CustomEvent('docker-pre-folder-expansion', {detail: { id }}));
     const element = $(`.dropDown-${id}`);
     const state = element.attr('active') === "true";
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Current state (active attribute): ${state}.`);
+    folderLog(`dropDownButton (id: ${id}): Current state (active attribute): ${state}.`);
     if (state) { // Is expanded, so collapse
         element.children().removeClass('fa-chevron-up').addClass('fa-chevron-down');
         $(`tr.folder-id-${id}`).addClass('sortable');
         $(`tr.folder-id-${id} .folder-storage`).append($(`.folder-${id}-element`));
         element.attr('active', 'false');
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Collapsed folder. Moved elements to storage.`);
+        folderLog(`dropDownButton (id: ${id}): Collapsed folder. Moved elements to storage.`);
     } else { // Is collapsed, so expand
         element.children().removeClass('fa-chevron-down').addClass('fa-chevron-up');
         $(`tr.folder-id-${id}`).removeClass('sortable').removeClass('ui-sortable-handle').off().css('cursor', '');
         $(`tr.folder-id-${id}`).after($(`.folder-${id}-element`));
         $(`.folder-${id}-element > td > i.fa-arrows-v`).remove(); // Remove mover icon from children when expanded
         element.attr('active', 'true');
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Expanded folder. Moved elements after folder row.`);
+        folderLog(`dropDownButton (id: ${id}): Expanded folder. Moved elements after folder row.`);
     }
     if(globalFolders[id]) {
         globalFolders[id].status.expanded = !state;
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Updated globalFolders[${id}].status.expanded to ${!state}.`);
+        folderLog(`dropDownButton (id: ${id}): Updated globalFolders[${id}].status.expanded to ${!state}.`);
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] dropDownButton (id: ${id}): globalFolders[${id}] not found to update expanded status.`);
+        folderWarn(`dropDownButton (id: ${id}): globalFolders[${id}] not found to update expanded status.`);
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Dispatching docker-post-folder-expansion event.`);
+    folderLog(`dropDownButton (id: ${id}): Dispatching docker-post-folder-expansion event.`);
     folderEvents.dispatchEvent(new CustomEvent('docker-post-folder-expansion', {detail: { id }}));
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dropDownButton (id: ${id}): Exit.`);
+    folderLog(`dropDownButton (id: ${id}): Exit.`);
 };
 
 /**
@@ -1109,7 +1053,7 @@ const dropDownButton = (id) => {
  * @param {string} id the id of the folder
  */
 const rmFolder = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Entry.`);
+    folderLog(`rmFolder (id: ${id}): Entry.`);
     // Ask for a confirmation
     swal({
         title: $.i18n('are-you-sure'),
@@ -1122,12 +1066,12 @@ const rmFolder = (id) => {
         showLoaderOnConfirm: true
     },
     async (c) => {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Swal callback. Confirmed: ${c}`);
+        folderLog(`rmFolder (id: ${id}): Swal callback. Confirmed: ${c}`);
         if (!c) { setTimeout(loadlist, 0); return; } // Use timeout 0 for consistency
         $('div.spinner.fixed').show('slow');
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Calling delete API.`);
+        folderLog(`rmFolder (id: ${id}): Calling delete API.`);
         await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'docker', id: id, csrf_token: csrf_token }).promise();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Delete API call finished. Reloading list.`);
+        folderLog(`rmFolder (id: ${id}): Delete API call finished. Reloading list.`);
         setTimeout(loadlist, 500);
     });
 };
@@ -1137,7 +1081,7 @@ const rmFolder = (id) => {
  * @param {string} id the id of the folder
  */
 const editFolder = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] editFolder (id: ${id}): Redirecting to edit page.`);
+    folderLog(`editFolder (id: ${id}): Redirecting to edit page.`);
     location.href = "/Docker/Folder?type=docker&id=" + id;
 };
 
@@ -1146,12 +1090,12 @@ const editFolder = (id) => {
  * @param {string} id the id of the folder
  */
 const forceUpdateFolder = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] forceUpdateFolder (id: ${id}): Entry.`);
+    folderLog(`forceUpdateFolder (id: ${id}): Entry.`);
     hideAllTips();
     const folder = globalFolders[id];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] forceUpdateFolder (id: ${id}): Folder data:`, {...folder});
+    folderLog(`forceUpdateFolder (id: ${id}): Folder data:`, {...folder});
     const containersToUpdate = Object.entries(folder.containers).filter(([k, v]) => v.managed).map(e => e[0]).join('*');
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] forceUpdateFolder (id: ${id}): Containers to force update: ${containersToUpdate}. Calling openDocker.`);
+    folderLog(`forceUpdateFolder (id: ${id}): Containers to force update: ${containersToUpdate}. Calling openDocker.`);
     openDocker('update_container ' + containersToUpdate, $.i18n('updating', folder.name),'','loadlist');
 };
 
@@ -1160,12 +1104,12 @@ const forceUpdateFolder = (id) => {
  * @param {string} id the id of the folder
  */
 const updateFolder = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] updateFolder (id: ${id}): Entry.`);
+    folderLog(`updateFolder (id: ${id}): Entry.`);
     hideAllTips();
     const folder = globalFolders[id];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] updateFolder (id: ${id}): Folder data:`, {...folder});
+    folderLog(`updateFolder (id: ${id}): Folder data:`, {...folder});
     const containersToUpdate = Object.entries(folder.containers).filter(([k, v]) => v.managed && v.update).map(e => e[0]).join('*');
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] updateFolder (id: ${id}): Containers to update (ready): ${containersToUpdate}. Calling openDocker.`);
+    folderLog(`updateFolder (id: ${id}): Containers to update (ready): ${containersToUpdate}. Calling openDocker.`);
     openDocker('update_container ' + containersToUpdate, $.i18n('updating', folder.name),'','loadlist');
 };
 
@@ -1175,10 +1119,10 @@ const updateFolder = (id) => {
  * @param {string} action the desired action
  */
 const actionFolder = async (id, action) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}, action: ${action}): Entry.`);
+    folderLog(`actionFolder (id: ${id}, action: ${action}): Entry.`);
     const folder = globalFolders[id];
     if (!folder || !folder.containers) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] actionFolder (id: ${id}): Folder or folder.containers not found in globalFolders.`);
+        folderWarn(`actionFolder (id: ${id}): Folder or folder.containers not found in globalFolders.`);
         $('div.spinner.fixed').hide('slow');
         return;
     }
@@ -1186,8 +1130,7 @@ const actionFolder = async (id, action) => {
     let proms = [];
     let errors;
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Folder data:`, {...folder}, "Containers to act on:", cts);
-
+    folderLog(`actionFolder (id: ${id}): Folder data:`, {...folder}, "Containers to act on:", cts);
     $(`i#load-folder-${id}`).removeClass('fa-play fa-square fa-pause').addClass('fa-refresh fa-spin');
     $('div.spinner.fixed').show('slow');
 
@@ -1195,12 +1138,12 @@ const actionFolder = async (id, action) => {
         const containerName = cts[index];
         const ct = folder.containers[containerName];
         if (!ct) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] actionFolder (id: ${id}): Container data for '${containerName}' not found in folder.containers.`);
+            folderWarn(`actionFolder (id: ${id}): Container data for '${containerName}' not found in folder.containers.`);
             continue;
         }
         const cid = ct.id;
         let pass = false; // Default to false
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Processing container ${containerName} (cid: ${cid}). State: ${ct.state}, Paused: ${ct.pause}.`);
+        folderLog(`actionFolder (id: ${id}): Processing container ${containerName} (cid: ${cid}). State: ${ct.state}, Paused: ${ct.pause}.`);
         switch (action) {
             case "start":
                 pass = !ct.state;
@@ -1219,27 +1162,26 @@ const actionFolder = async (id, action) => {
                 break;
             default:
                 pass = false; // Should not happen with predefined actions
-                if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] actionFolder (id: ${id}): Unknown action '${action}'.`);
+                folderWarn(`actionFolder (id: ${id}): Unknown action '${action}'.`);
                 break;
         }
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Container ${containerName} - action '${action}', pass condition: ${pass}.`);
+        folderLog(`actionFolder (id: ${id}): Container ${containerName} - action '${action}', pass condition: ${pass}.`);
         if(pass) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Pushing POST request for container ${cid}, action ${action}.`);
+            folderLog(`actionFolder (id: ${id}): Pushing POST request for container ${cid}, action ${action}.`);
             proms.push($.post(eventURL, {action: action, container:cid}, null,'json').promise());
         }
     }
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Awaiting ${proms.length} promises.`);
+    folderLog(`actionFolder (id: ${id}): Awaiting ${proms.length} promises.`);
     const results = await Promise.all(proms);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Promises resolved. Results:`, results);
-
+    folderLog(`actionFolder (id: ${id}): Promises resolved. Results:`, results);
     errors = results.filter(e => e.success !== true);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Filtered errors:`, errors);
+    folderLog(`actionFolder (id: ${id}): Filtered errors:`, errors);
     // errors = errors.map(e => e.success); // This line seems to map to boolean, original used `e.text` or similar for swal
 
     if(errors.length > 0) {
         const errorMessages = errors.map(e => e.text || JSON.stringify(e)); // Get error text or stringify if not present
-        if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] actionFolder (id: ${id}): Execution errors occurred:`, errorMessages);
+        folderWarn(`actionFolder (id: ${id}): Execution errors occurred:`, errorMessages);
         swal({
             title: $.i18n('exec-error'),
             text:errorMessages.join('<br>'),
@@ -1248,11 +1190,11 @@ const actionFolder = async (id, action) => {
             confirmButtonText:'Ok'
         }, loadlist);
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): No errors. Reloading list.`);
+        folderLog(`actionFolder (id: ${id}): No errors. Reloading list.`);
         loadlist();
     }
     $('div.spinner.fixed').hide('slow');
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] actionFolder (id: ${id}): Exit.`);
+    folderLog(`actionFolder (id: ${id}): Exit.`);
 };
 
 /**
@@ -1261,31 +1203,30 @@ const actionFolder = async (id, action) => {
  * @param {number} actionIndex
  */
 const folderCustomAction = async (id, actionIndex) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}, actionIndex: ${actionIndex}): Entry.`);
+    folderLog(`folderCustomAction (id: ${id}, actionIndex: ${actionIndex}): Entry.`);
     $('div.spinner.fixed').show('slow');
     const folder = globalFolders[id];
     if (!folder || !folder.actions || !folder.actions[actionIndex]) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] folderCustomAction: Folder or action definition not found for id ${id}, actionIndex ${actionIndex}.`);
+        folderWarn(`folderCustomAction: Folder or action definition not found for id ${id}, actionIndex ${actionIndex}.`);
         $('div.spinner.fixed').hide('slow');
         loadlist();
         return;
     }
     let act = folder.actions[actionIndex];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Action details:`, {...act});
+    folderLog(`folderCustomAction (id: ${id}): Action details:`, {...act});
     let prom = [];
 
     if(act.type === 0) { // Standard Docker action
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Action type 0 (Standard Docker).`);
+        folderLog(`folderCustomAction (id: ${id}): Action type 0 (Standard Docker).`);
         // act.conatiners is an array of names. Need to map to folder.containers[name]
         const cts = act.conatiners.map(name => folder.containers[name]).filter(e => e);
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Targeted containers data:`, [...cts]);
-
+        folderLog(`folderCustomAction (id: ${id}): Targeted containers data:`, [...cts]);
         let ctAction = (e) => {}; // Placeholder
         if(act.action === 0) { // Cycle
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Standard action type 0 (Cycle). Mode: ${act.modes}.`);
+            folderLog(`folderCustomAction (id: ${id}): Standard action type 0 (Cycle). Mode: ${act.modes}.`);
             if(act.modes === 0) { // Start - Stop
                 ctAction = (e_ct) => {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Cycle Start-Stop for ${e_ct.id}): State: ${e_ct.state}`);
+                    folderLog(`folderCustomAction (Cycle Start-Stop for ${e_ct.id}): State: ${e_ct.state}`);
                     if(e_ct.state) { // if running
                         prom.push($.post(eventURL, {action: 'stop', container:e_ct.id}, null,'json').promise());
                     } else { // if stopped
@@ -1294,7 +1235,7 @@ const folderCustomAction = async (id, actionIndex) => {
                 };
             } else if(act.modes === 1) { // Pause - Resume
                 ctAction = (e_ct) => {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Cycle Pause-Resume for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
+                    folderLog(`folderCustomAction (Cycle Pause-Resume for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
                     if(e_ct.state) { // if running (can be paused or not)
                         if(e_ct.pause) { // if paused
                             prom.push($.post(eventURL, {action: 'resume', container:e_ct.id}, null,'json').promise());
@@ -1305,83 +1246,80 @@ const folderCustomAction = async (id, actionIndex) => {
                 };
             }
         } else if(act.action === 1) { // Set
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Standard action type 1 (Set). Mode: ${act.modes}.`);
+            folderLog(`folderCustomAction (id: ${id}): Standard action type 1 (Set). Mode: ${act.modes}.`);
             if(act.modes === 0) { // Start
                 ctAction = (e_ct) => {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Set Start for ${e_ct.id}): State: ${e_ct.state}`);
+                    folderLog(`folderCustomAction (Set Start for ${e_ct.id}): State: ${e_ct.state}`);
                     if(!e_ct.state) { prom.push($.post(eventURL, {action: 'start', container:e_ct.id}, null,'json').promise()); }
                 };
             } else if(act.modes === 1) { // Stop
                 ctAction = (e_ct) => {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Set Stop for ${e_ct.id}): State: ${e_ct.state}`);
+                    folderLog(`folderCustomAction (Set Stop for ${e_ct.id}): State: ${e_ct.state}`);
                     if(e_ct.state) { prom.push($.post(eventURL, {action: 'stop', container:e_ct.id}, null,'json').promise()); }
                 };
             } else if(act.modes === 2) { // Pause
                 ctAction = (e_ct) => {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Set Pause for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
+                    folderLog(`folderCustomAction (Set Pause for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
                     if(e_ct.state && !e_ct.pause) { prom.push($.post(eventURL, {action: 'pause', container:e_ct.id}, null,'json').promise()); }
                 };
             } else if(act.modes === 3) { // Resume
                 ctAction = (e_ct) => {
-                     if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Set Resume for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
+                     folderLog(`folderCustomAction (Set Resume for ${e_ct.id}): State: ${e_ct.state}, Paused: ${e_ct.pause}`);
                     if(e_ct.state && e_ct.pause) { prom.push($.post(eventURL, {action: 'resume', container:e_ct.id}, null,'json').promise()); }
                 };
             }
         } else if(act.action === 2) { // Restart
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Standard action type 2 (Restart).`);
+            folderLog(`folderCustomAction (id: ${id}): Standard action type 2 (Restart).`);
             ctAction = (e_ct) => {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (Restart for ${e_ct.id})`);
+                folderLog(`folderCustomAction (Restart for ${e_ct.id})`);
                 prom.push($.post(eventURL, {action: 'restart', container:e_ct.id}, null,'json').promise());
             };
         }
         cts.forEach((e_ct_data) => { // e_ct_data is like {id: "...", state: true, ...}
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Applying defined ctAction to container data:`, e_ct_data);
+            folderLog(`folderCustomAction (id: ${id}): Applying defined ctAction to container data:`, e_ct_data);
             ctAction(e_ct_data);
         });
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Pushed ${prom.length} standard actions to promise array.`);
-
+        folderLog(`folderCustomAction (id: ${id}): Pushed ${prom.length} standard actions to promise array.`);
     } else if(act.type === 1) { // User Script
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Action type 1 (User Script). Script: ${act.script}, Sync: ${act.script_sync}, Args: ${act.script_args}`);
+        folderLog(`folderCustomAction (id: ${id}): Action type 1 (User Script). Script: ${act.script}, Sync: ${act.script_sync}, Args: ${act.script_args}`);
         const args = act.script_args || '';
         if(act.script_sync) { // Synchronous (foreground) script
             let scriptVariables = {};
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Sync script. Getting script variables.`);
+            folderLog(`folderCustomAction (id: ${id}): Sync script. Getting script variables.`);
             let rawVars = await $.post("/plugins/user.scripts/exec.php",{action:'getScriptVariables',script:`/boot/config/plugins/user.scripts/scripts/${act.script}/script`}).promise();
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Raw script variables:`, rawVars);
+            folderLog(`folderCustomAction (id: ${id}): Raw script variables:`, rawVars);
             rawVars.trim().split('\n').forEach((e) => { const variable = e.split('='); scriptVariables[variable[0]] = variable[1] });
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Parsed script variables:`, scriptVariables);
-
+            folderLog(`folderCustomAction (id: ${id}): Parsed script variables:`, scriptVariables);
             if(scriptVariables['directPHP']) {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): directPHP detected. Posting directRunScript.`);
+                folderLog(`folderCustomAction (id: ${id}): directPHP detected. Posting directRunScript.`);
                 // This is a POST that then has a callback to openBox. It's not added to `prom`.
                 $.post("/plugins/user.scripts/exec.php",{action:'directRunScript',path:`/boot/config/plugins/user.scripts/scripts/${act.script}/script`},function(data) {
-                    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): directRunScript callback. Data:`, data);
+                    folderLog(`folderCustomAction (id: ${id}): directRunScript callback. Data:`, data);
                     if(data) { openBox(data,act.name,800,1200, 'loadlist'); }
                 });
             } else {
-                if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Not directPHP. Posting convertScript then openBox.`);
+                folderLog(`folderCustomAction (id: ${id}): Not directPHP. Posting convertScript then openBox.`);
                 // This is also a POST with a callback. Not added to `prom`.
                 $.post("/plugins/user.scripts/exec.php",{action:'convertScript',path:`/boot/config/plugins/user.scripts/scripts/${act.script}/script`},function(data) {
-                     if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): convertScript callback. Data:`, data);
+                     folderLog(`folderCustomAction (id: ${id}): convertScript callback. Data:`, data);
                     if(data) {openBox('/plugins/user.scripts/startScript.sh&arg1='+data+'&arg2='+args,act.name,800,1200,true, 'loadlist');}
                 });
             }
         } else { // Asynchronous (background) script
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Async script. Posting convertScript then GET logging.htm.`);
+            folderLog(`folderCustomAction (id: ${id}): Async script. Posting convertScript then GET logging.htm.`);
             const cmd = await $.post("/plugins/user.scripts/exec.php",{action:'convertScript', path:`/boot/config/plugins/user.scripts/scripts/${act.script}/script`}).promise();
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Converted script cmd:`, cmd);
+            folderLog(`folderCustomAction (id: ${id}): Converted script cmd:`, cmd);
             prom.push($.get('/logging.htm?cmd=/plugins/user.scripts/backgroundScript.sh&arg1='+cmd+'&arg2='+args+'&csrf_token='+csrf_token+'&done=Done').promise());
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Pushed async script call to promise array.`);
+            folderLog(`folderCustomAction (id: ${id}): Pushed async script call to promise array.`);
         }
     }
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Awaiting ${prom.length} promises for custom action.`);
+    folderLog(`folderCustomAction (id: ${id}): Awaiting ${prom.length} promises for custom action.`);
     await Promise.all(prom);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): All promises resolved. Reloading list.`);
-
+    folderLog(`folderCustomAction (id: ${id}): All promises resolved. Reloading list.`);
     loadlist();
     $('div.spinner.fixed').hide('slow');
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] folderCustomAction (id: ${id}): Exit.`);
+    folderLog(`folderCustomAction (id: ${id}): Exit.`);
 };
 
 
@@ -1390,25 +1328,22 @@ const folderCustomAction = async (id, actionIndex) => {
  * @param {string} id the id of the folder
  */
 const addDockerFolderContext = (id) => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Entry.`);
+    folderLog(`addDockerFolderContext (id: ${id}): Entry.`);
     let opts = [];
 
     context.settings({
         right: false,
         above: false
     });
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Context menu settings configured.`);
-
+    folderLog(`addDockerFolderContext (id: ${id}): Context menu settings configured.`);
     if (!globalFolders[id]) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.error(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Folder data not found in globalFolders. Aborting context menu.`);
+        folderWarn(`addDockerFolderContext (id: ${id}): Folder data not found in globalFolders. Aborting context menu.`);
         return;
     }
     const folderData = globalFolders[id];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Folder data:`, {...folderData});
-
-
+    folderLog(`addDockerFolderContext (id: ${id}): Folder data:`, {...folderData});
     if(folderData.settings.override_default_actions && folderData.actions && folderData.actions.length) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Overriding default actions with ${folderData.actions.length} custom actions.`);
+        folderLog(`addDockerFolderContext (id: ${id}): Overriding default actions with ${folderData.actions.length} custom actions.`);
         opts.push(
             ...folderData.actions.map((e, i) => {
                 return {
@@ -1420,7 +1355,7 @@ const addDockerFolderContext = (id) => {
         );
         opts.push({ divider: true });
     } else if(!folderData.settings.default_action) { // if default actions are NOT hidden
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Adding default action menu items.`);
+        folderLog(`addDockerFolderContext (id: ${id}): Adding default action menu items.`);
         opts.push({
             text: $.i18n('start'),
             icon: 'fa-play',
@@ -1450,7 +1385,7 @@ const addDockerFolderContext = (id) => {
     }
 
     if(folderData.status.managed > 0) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Folder has managed containers. Adding update options.`);
+        folderLog(`addDockerFolderContext (id: ${id}): Folder has managed containers. Adding update options.`);
         if(!folderData.status.upToDate) {
             opts.push({
                 text: $.i18n('update'),
@@ -1481,7 +1416,7 @@ const addDockerFolderContext = (id) => {
 
     // Add custom actions as submenu if not overriding and custom actions exist
     if(!folderData.settings.override_default_actions && folderData.actions && folderData.actions.length) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Adding custom actions as submenu.`);
+        folderLog(`addDockerFolderContext (id: ${id}): Adding custom actions as submenu.`);
         opts.push({ divider: true });
         opts.push({
             text: $.i18n('custom-actions'),
@@ -1496,40 +1431,40 @@ const addDockerFolderContext = (id) => {
         });
     }
 
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Dispatching docker-folder-context event. Options:`, opts);
+    folderLog(`addDockerFolderContext (id: ${id}): Dispatching docker-folder-context event. Options:`, opts);
     folderEvents.dispatchEvent(new CustomEvent('docker-folder-context', {detail: { id, opts }}));
 
     context.attach('#' + id, opts);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] addDockerFolderContext (id: ${id}): Context menu attached to #${id}. Exit.`);
+    folderLog(`addDockerFolderContext (id: ${id}): Context menu attached to #${id}. Exit.`);
 };
 
 // Patching the original function to make sure the containers are rendered before insering the folder
 window.listview_original = window.listview; // Ensure original is captured
 window.listview = () => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: Entry.');
+    folderLog('Patched listview: Entry.');
     if (typeof window.listview_original === 'function') {
         window.listview_original();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: Called original listview.');
+        folderLog('Patched listview: Called original listview.');
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.error('[FV2_DEBUG] Patched listview: window.listview_original is not a function!');
+        folderWarn('Patched listview: window.listview_original is not a function!');
     }
 
     if (!loadedFolder) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: loadedFolder is false. Calling createFolders.');
+        folderLog('Patched listview: loadedFolder is false. Calling createFolders.');
         createFolders(); // This is async, but original listview isn't, so this runs after.
         loadedFolder = true;
-         if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: Set loadedFolder to true.');
+         folderLog('Patched listview: Set loadedFolder to true.');
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: loadedFolder is true. Skipped createFolders.');
+        folderLog('Patched listview: loadedFolder is true. Skipped createFolders.');
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched listview: Exit.');
+    folderLog('Patched listview: Exit.');
 };
 
 window.loadlist_original = window.loadlist; // Ensure original is captured
 window.loadlist = () => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched loadlist: Entry.');
+    folderLog('Patched loadlist: Entry.');
     loadedFolder = false;
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched loadlist: Set loadedFolder to false.');
+    folderLog('Patched loadlist: Set loadedFolder to false.');
     folderReq = [
         // Get the folders
         $.get('/plugins/unraid-folderview/server/read.php?type=docker').promise(),
@@ -1540,36 +1475,31 @@ window.loadlist = () => {
         // Get the order that is shown in the webui
         $.get('/plugins/unraid-folderview/server/read_unraid_order.php?type=docker').promise()
     ];
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched loadlist: folderReq initialized with 4 promises.');
-
+    folderLog('Patched loadlist: folderReq initialized with 4 promises.');
     if (typeof window.loadlist_original === 'function') {
         window.loadlist_original();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched loadlist: Called original loadlist.');
+        folderLog('Patched loadlist: Called original loadlist.');
     } else {
-        if (FOLDER_VIEW_DEBUG_MODE) console.error('[FV2_DEBUG] Patched loadlist: window.loadlist_original is not a function!');
+        folderWarn('Patched loadlist: window.loadlist_original is not a function!');
     }
-     if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Patched loadlist: Exit.');
+     folderLog('Patched loadlist: Exit.');
 };
 
 // Get the number of CPU, nneded for a right display of the load
-if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Requesting CPU count.');
+folderLog('Requesting CPU count.');
 $.get('/plugins/unraid-folderview/server/cpu.php').promise().then((data) => {
     cpus = parseInt(data);
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] CPU count received: ${cpus}. Attaching SSE listener for dockerload.`);
+    folderLog(`CPU count received: ${cpus}. Attaching SSE listener for dockerload.`);
     // Attach to the scoket and process the data
     dockerload.addEventListener('message', (e_sse) => { // Renamed e to e_sse to avoid conflict
-        // if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] dockerload SSE: Message event received. Event object:', e_sse);
 
         // --- START OF FIX ---
         if (typeof e_sse.data !== 'string' || !e_sse.data.trim()) {
-            // if (FOLDER_VIEW_DEBUG_MODE) {
-            //     console.warn('[FV2_DEBUG] dockerload SSE: Received message without valid string data or empty data. Skipping. Data was:', e_sse.data);
-            // }
             return; // Skip processing if data is not a string or is empty
         }
         // --- END OF FIX ---
 
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] dockerload SSE: Message received (e_sse.data):', e_sse.data);
+        folderLog('dockerload SSE: Message received (e_sse.data):', e_sse.data);
         let load = {};
         const lines = e_sse.data.split('\n');
         lines.forEach((line_str) => { // Renamed e to line_str
@@ -1581,42 +1511,36 @@ $.get('/plugins/unraid-folderview/server/cpu.php').promise().then((data) => {
                     mem: exp[2].split(' / ')
                 };
             } else {
-                if (FOLDER_VIEW_DEBUG_MODE) console.warn('[FV2_DEBUG] dockerload SSE: Malformed line:', line_str);
+                folderWarn('dockerload SSE: Malformed line:', line_str);
             }
         });
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] dockerload SSE: Parsed load data:', {...load});
-
+        folderLog('dockerload SSE: Parsed load data:', {...load});
         for (const [id, value] of Object.entries(globalFolders)) {
             let loadCpu = 0;
             let totalMemB = 0; // Use Bytes for sum then convert
             let loadMemB = 0;  // Use Bytes for sum then convert
 
             if (!value || !value.containers) {
-                if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] dockerload SSE: Folder ${id} or its containers not found in globalFolders.`);
+                folderWarn(`dockerload SSE: Folder ${id} or its containers not found in globalFolders.`);
                 continue;
             }
 
             for (const [cid_name, cvalue] of Object.entries(value.containers)) { // cid_name is container name, cvalue is {id, state, ...}
                 const containerShortId = cvalue.id;
                 const curLoad = load[containerShortId] || { cpu: '0.00%', mem: ['0B', '0B'] };
-                if (FOLDER_VIEW_DEBUG_MODE && !load[containerShortId]) {
-                    // console.log(`[FV2_DEBUG] dockerload SSE (folder ${id}): No direct load data for ${containerShortId} (name: ${cid_name}), using default.`);
-                }
-
                 loadCpu += parseFloat(curLoad.cpu.replace('%', '')) / cpus; // Already per core from SSE
                 loadMemB += memToB(curLoad.mem[0]);
                 let tempTotalMem = memToB(curLoad.mem[1]);
                 totalMemB = Math.max(totalMemB, tempTotalMem); // Max of individual limits, or sum if preferred
             }
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] dockerload SSE (folder ${id}): Calculated totals - loadCpu: ${loadCpu.toFixed(2)}%, loadMemB: ${loadMemB}, totalMemB: ${totalMemB}`);
-
+            folderLog(`dockerload SSE (folder ${id}): Calculated totals - loadCpu: ${loadCpu.toFixed(2)}%, loadMemB: ${loadMemB}, totalMemB: ${totalMemB}`);
             $(`span.mem-folder-${id}`).text(`${bToMem(loadMemB)} / ${bToMem(totalMemB)}`);
             $(`span.cpu-folder-${id}`).text(`${loadCpu.toFixed(2)}%`);
             $(`span#cpu-folder-${id}`).css('width', `${Math.min(100, loadCpu).toFixed(2)}%`); // Cap at 100% for display
         }
     });
 }).catch(err => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.error('[FV2_DEBUG] Error fetching CPU count:', err);
+    folderWarn('Error fetching CPU count:', err);
 });
 
 /**
@@ -1626,7 +1550,7 @@ $.get('/plugins/unraid-folderview/server/cpu.php').promise().then((data) => {
  */
 const memToB = (mem) => {
     if (typeof mem !== 'string') {
-        if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] memToB: Input is not a string: ${mem}. Returning 0.`);
+        folderWarn(`memToB: Input is not a string: ${mem}. Returning 0.`);
         return 0;
     }
     const unitMatch = mem.match(/[a-zA-Z]+/); // Get all letters for unit
@@ -1634,7 +1558,7 @@ const memToB = (mem) => {
     const numPart = parseFloat(mem.replace(unit, ''));
 
     if (isNaN(numPart)) {
-         if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] memToB: Could not parse number from ${mem}. Returning 0.`);
+         folderWarn(`memToB: Could not parse number from ${mem}. Returning 0.`);
         return 0;
     }
 
@@ -1651,12 +1575,11 @@ const memToB = (mem) => {
         case 'ZiB': multiplier = 2 ** 70; break;
         case 'YiB': multiplier = 2 ** 80; break;
         default:
-            if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] memToB: Unknown memory unit '${unit}' in '${mem}'. Assuming Bytes.`);
+            folderWarn(`memToB: Unknown memory unit '${unit}' in '${mem}'. Assuming Bytes.`);
             multiplier = 1; // Default to Bytes if unit is unknown
             break;
     }
     const result = numPart * multiplier;
-    // if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] memToB: Converted '${mem}' (num: ${numPart}, unit: ${unit}) to ${result} Bytes.`);
     return result;
 };
 
@@ -1668,7 +1591,7 @@ const memToB = (mem) => {
  */
 const bToMem = (b) => {
     if (typeof b !== 'number' || isNaN(b) || b < 0) {
-        if (FOLDER_VIEW_DEBUG_MODE) console.warn(`[FV2_DEBUG] bToMem: Invalid input ${b}. Returning '0 B'.`);
+        folderWarn(`bToMem: Invalid input ${b}. Returning '0 B'.`);
         return '0 B';
     }
     if (b === 0) return '0 B';
@@ -1681,7 +1604,6 @@ const bToMem = (b) => {
         i++;
     }
     const result = `${value.toFixed(2)} ${units[i]}`;
-    // if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] bToMem: Converted ${b} Bytes to ${result}.`);
     return result;
 };
 
@@ -1700,24 +1622,22 @@ let folderobserverConfig = {
 };
 let folderReq = [];
 
-if (FOLDER_VIEW_DEBUG_MODE) {
-    console.log('[FV2_DEBUG] Global variables initialized:', {
-        cpus, loadedFolder, globalFolders: {...globalFolders}, folderRegex: folderRegex.toString(),
-        folderDebugMode, folderDebugModeWindow: [...folderDebugModeWindow],
-        folderobserverConfig: {...folderobserverConfig}, folderReq: [...folderReq]
-    });
-}
+folderLog('Global variables initialized:', {
+    cpus, loadedFolder, globalFolders: {...globalFolders}, folderRegex: folderRegex.toString(),
+    folderDebugMode, folderDebugModeWindow: [...folderDebugModeWindow],
+    folderobserverConfig: {...folderobserverConfig}, folderReq: [...folderReq]
+});
 
 // Add the button for creating a folder
 const createFolderBtn = () => {
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolderBtn: Clicked. Redirecting.');
+    folderLog('createFolderBtn: Clicked. Redirecting.');
     location.href = "/Docker/Folder?type=docker"
 };
 
 // This is needed because unraid don't like the folder and the number are set incorrectly, this intercept the request and change the numbers to make the order appear right, this is important for the autostart and to draw the folders
 $.ajaxPrefilter((options, originalOptions, jqXHR) => {
     if (options.url === "/plugins/dynamix.docker.manager/include/UserPrefs.php") {
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] ajaxPrefilter (UserPrefs.php): Intercepted.', {...options});
+        folderLog('ajaxPrefilter (UserPrefs.php): Intercepted.', {...options});
         const data = new URLSearchParams(options.data);
         const containers = data.get('names').split(';');
         let num = "";
@@ -1726,7 +1646,7 @@ $.ajaxPrefilter((options, originalOptions, jqXHR) => {
         }
         data.set('index', num);
         options.data = data.toString();
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] ajaxPrefilter (UserPrefs.php): Modified options.data:', options.data);
+        folderLog('ajaxPrefilter (UserPrefs.php): Modified options.data:', options.data);
     }
 });
 
@@ -1739,12 +1659,12 @@ addEventListener("keydown", (e) => {
     if(folderDebugModeWindow.length > 5) {
         folderDebugModeWindow.shift();
     }
-    if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] Keydown event: key='${e.key}'. Debug window: ${folderDebugModeWindow.join('')}`);
+    folderLog(`Keydown event: key='${e.key}'. Debug window: ${folderDebugModeWindow.join('')}`);
     if(folderDebugModeWindow.join('').toLowerCase() === "debug") {
         folderDebugMode = true; // Existing flag
-        if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] Debug sequence "debug" detected. Set folderDebugMode (existing) to true. Reloading list.');
+        folderLog('Debug sequence "debug" detected. Set folderDebugMode (existing) to true. Reloading list.');
         loadlist();
     }
 });
 
-if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] docker.js: End of script execution.');
+folderLog('docker.js: End of script execution.');

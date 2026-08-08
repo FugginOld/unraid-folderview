@@ -1227,7 +1227,7 @@ because it removes ~17% of the lines those refactors have to read, move and re-r
   Both read the flag at *call* time, not load time, so it can be flipped from the browser
   console without a reload — which is the only reason anyone turns it on.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/folder-core.test.js`:
 
@@ -1274,12 +1274,12 @@ test('folderLog reads the flag at call time, not at load time', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.folderLog is not a function` (3 failures).
 
-- [ ] **Step 3: Implement the helpers**
+- [x] **Step 3: Implement the helpers**
 
 Add to `folder-core.js`:
 
@@ -1305,12 +1305,12 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/*.test.js`
 Expected: PASS, 17/17.
 
-- [ ] **Step 5: Convert the call sites in `docker.js`**
+- [x] **Step 5: Convert the call sites in `docker.js`**
 
 The existing idiom is one of these two shapes:
 
@@ -1353,12 +1353,12 @@ function — `unraidOrder`, `order` and `folders` in `createFolders` qualify:
 Keep `const FOLDER_VIEW_DEBUG_MODE = false;` at `docker.js:1` — it is the documented switch,
 and `folderLog` reads it off the global scope where that declaration puts it.
 
-- [ ] **Step 6: Delete the dead per-folder debug block**
+- [x] **Step 6: Delete the dead per-folder debug block**
 
 `docker.js:206-210` is debug code keyed to one specific folder ID from the original author's
 own server. Delete it outright.
 
-- [ ] **Step 7: Convert `vm.js` and `dashboard.js`**
+- [x] **Step 7: Convert `vm.js` and `dashboard.js`**
 
 Same mechanical conversion. Find every remaining site:
 
@@ -1369,19 +1369,41 @@ grep -rn "FOLDER_VIEW_DEBUG_MODE" src/unraid-folderview/usr/local/emhttp/plugins
 Expected after the sweep: exactly three hits — the `const FOLDER_VIEW_DEBUG_MODE = false;`
 declaration at the top of each of the three scripts. Every other hit is an unconverted site.
 
-- [ ] **Step 8: Verify nothing else changed**
+- [x] **Step 8: Verify nothing else changed**
 
 Run: `node --test tests/*.test.js`
 Expected: PASS, 17/17.
 
-Then confirm the line count actually dropped:
+Then confirm the sweep landed:
 
 ```bash
-wc -l src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js
+F=src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js
+grep -n 'FOLDER_VIEW_DEBUG_MODE' $F      # comments only
+grep -c '\[FV2_DEBUG\]' $F               # 0 — folderLog adds the prefix
+wc -l $F ; wc -c $F
 ```
 
-Expected: roughly 1,450-1,500, down from 1,752. A number close to 1,752 means the sweep was
-incomplete.
+**Correction to this plan's original claim.** It predicted ~1,450-1,500 lines, down from
+1,752. That was wrong, and the arithmetic behind it was wrong. Converting
+
+```js
+if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Entry');
+```
+
+into
+
+```js
+folderLog('createFolders: Entry');
+```
+
+replaces one line with one line. It does not delete anything. Only the multi-line blocks,
+the dead per-folder block, the empty guard and the commented-out debug actually reduce the
+count.
+
+Measured result: **1,749 → 1,669 lines (-80)** and **119,890 → 106,391 bytes (-13,499,
+11%)**. The real win is the ~30 characters of guard-and-prefix ceremony gone from 277 lines
+of logic, not a line-count collapse. Judge the sweep by the two `grep`s above, not by
+`wc -l`.
 
 - [ ] **Step 9: Verify on an Unraid box (manual)**
 
