@@ -392,7 +392,7 @@ disagree and the folder row lands in the wrong place.
   follows it in `prefsOrder` and is actually live; folders with no such successor go last.
   `interleaveFoldersLegacy` is deleted by this task.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/folder-core.test.js`:
 
@@ -457,12 +457,12 @@ test('every live container survives, in order', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.interleaveFolders is not a function` (8 failures).
 
-- [ ] **Step 3: Implement anchor-based insertion**
+- [x] **Step 3: Implement anchor-based insertion**
 
 In `folder-core.js`, **delete** `interleaveFoldersLegacy` entirely and add:
 
@@ -513,13 +513,13 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/*.test.js`
 Expected: PASS, 10/10. (The four `interleaveFoldersLegacy` tests from Task 2 are removed
 in Step 5 — they will be failing at this point, which is expected.)
 
-- [ ] **Step 5: Delete the superseded characterization tests**
+- [x] **Step 5: Delete the superseded characterization tests**
 
 Remove the four `legacy:` tests added in Task 2 from `tests/folder-core.test.js`. Their job
 — proving the transcription faithful — is done, and `interleaveFoldersLegacy` no longer
@@ -528,7 +528,7 @@ exists.
 Run: `node --test tests/*.test.js`
 Expected: PASS, 10/10, zero failures.
 
-- [ ] **Step 6: Call the shared function from `docker.js`**
+- [x] **Step 6: Call the shared function from `docker.js`**
 
 Replace `docker.js` lines 31-44 (from the `// Filter the order…` comment through the
 `if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Order after inserting…` line):
@@ -546,7 +546,7 @@ as a variable; it is also referenced in the debug-JSON dump around line 68, so r
 property with `newOnes: order.filter(x => !unraidOrder.includes(x))` to keep the dump
 informative, or drop the key.
 
-- [ ] **Step 7: Do the same in `vm.js` and `dashboard.js`**
+- [x] **Step 7: Do the same in `vm.js` and `dashboard.js`**
 
 Locate the equivalent `newOnes` / `splice(index + newOnes.length, …)` block in `vm.js` and
 **both** copies in `dashboard.js` (it renders docker and vm), and replace each with the
@@ -558,7 +558,66 @@ grep -rn "newOnes" src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderv
 
 Expected after the edit: no `newOnes.length` arithmetic anywhere.
 
-- [ ] **Step 8: Commit**
+**Found during execution — a second rewind `docker.js` does not have.** `vm.js:63`,
+`dashboard.js:68` and `dashboard.js:176` carry an extra line inside the draw loop:
+
+```js
+    key -= createFolder(folders[id], id, key, order, vmInfo, Object.keys(foldersDone));
+    key -= newOnes.length;                                    // <- only in vm/dashboard
+```
+
+`docker.js` rewinds by the `createFolder` return value alone, which is the only rewind the
+loop can justify: `createFolder` splices absorbed members out of `order`, so the cursor
+must step back by however many sat before the folder. The second line has no such
+justification — it compensated for the `+ newOnes.length` splice offset, and with that
+offset gone it is compensating for nothing. It is also cumulative, applying once per folder
+drawn, so with three folders and two new VMs it rewound the cursor by six.
+
+It stayed invisible because `newOnes` is empty whenever nothing has been created since the
+last manual drag-order, which is most of the time. This is a textbook instance of the
+"small fix for VMs" divergence — a hack added to two of the three renderers and never
+reconciled.
+
+**Delete all three occurrences**, leaving `vm.js` and `dashboard.js` matching `docker.js`.
+This is a real behaviour change on the VMs and Dashboard tabs, so it is called out in Step 9's
+on-box verification. The remaining `key -= createFolder(...)` rewind is Phase E's target.
+
+The four debug-JSON dumps still want a `newOnes` value for diagnosis; recompute it inline
+there rather than keeping the variable alive:
+
+```js
+    newOnes: order.filter(x => !unraidOrder.includes(x)),
+```
+
+- [x] **Step 8: Verify locally**
+
+Run:
+
+```bash
+grep -rn "newOnes.length" src/
+node --check src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js
+node --check src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/vm.js
+node --check src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/dashboard.js
+node --test tests/*.test.js
+```
+
+Expected: the `grep` returns only the explanatory comment inside `folder-core.js`; all three
+`--check` runs are silent; the suite is 10/10.
+
+- [ ] **Step 9: Verify on an Unraid box (manual — covers the deleted rewind)**
+
+Task 3 changes behaviour on all three tabs and the deleted `key -= newOnes.length` changes
+it most on VMs and Dashboard. The local suite cannot see any of that.
+
+1. On each of the Docker, VMs and Dashboard tabs: confirm folders render, expand, collapse
+   and drag-reorder as before.
+2. Create **two or more** folders on the VMs tab and drag them to different positions.
+   Refresh — every folder must hold its position. This is the case the deleted cumulative
+   rewind distorted, and it needs more than one folder to show up.
+3. Create a new container and a new VM, then refresh both tabs. Folders must not shift.
+4. Repeat step 2 on the Dashboard, which renders both types through separate code paths.
+
+- [ ] **Step 10: Commit**
 
 ```bash
 git add tests/folder-core.test.js src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/

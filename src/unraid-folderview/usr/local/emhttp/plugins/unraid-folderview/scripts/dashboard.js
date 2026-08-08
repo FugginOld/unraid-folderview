@@ -16,16 +16,9 @@ const createFolders = async () => {
         const containersInfo = JSON.parse(prom[2]);
         let order = Object.values(JSON.parse(prom[3]));
     
-        // Filter the order to get the container that aren't in the order, this happen when a new container is created
-        let newOnes = order.filter(x => !unraidOrder.includes(x));
-
-        // Insert the folder in the unraid folder into the order shifted by the unlisted containers
-        for (let index = 0; index < unraidOrder.length; index++) {
-            const element = unraidOrder[index];
-            if((folderRegex.test(element) && folders[element.slice(7)])) {
-                order.splice(index+newOnes.length, 0, element);
-            }
-        }
+        // Interleave the folder placeholders saved in userprefs.cfg into the live order.
+        // See folder-core.js — pure, and covered by tests/folder-core.test.js.
+        order = interleaveFolders(unraidOrder, order, folders);
 
         // debug mode, download the debug json file
         if(folderDebugMode) {
@@ -35,7 +28,7 @@ const createFolders = async () => {
                 folders,
                 unraidOrder,
                 originalOrder: JSON.parse(await $.get('/plugins/unraid-folderview/server/read_unraid_order.php?type=docker').promise()),
-                newOnes,
+                newOnes: order.filter(x => !unraidOrder.includes(x)),
                 order,
                 containersInfo
             })));
@@ -65,7 +58,6 @@ const createFolders = async () => {
                 let id = container.replace(folderRegex, '');
                 if (folders[id]) {
                     key -= createFolderDocker(folders[id], id, key, order, containersInfo, Object.keys(foldersDone));
-                    key -= newOnes.length;
                     // Move the folder to the done object and delete it from the undone one
                     foldersDone[id] = folders[id];
                     delete folders[id];
@@ -124,16 +116,9 @@ const createFolders = async () => {
         const vmInfo = JSON.parse(prom[2]);
         let order = Object.values(JSON.parse(prom[3]));
     
-        // Filter the webui order to get the container that aren't in the order, this happen when a new container is created
-        let newOnes = order.filter(x => !unraidOrder.includes(x));
-
-        // Insert the folder in the unraid folder into the order shifted by the unlisted containers
-        for (let index = 0; index < unraidOrder.length; index++) {
-            const element = unraidOrder[index];
-            if((folderRegex.test(element) && folders[element.slice(7)])) {
-                order.splice(index+newOnes.length, 0, element);
-            }
-        }
+        // Interleave the folder placeholders saved in userprefs.cfg into the live order.
+        // See folder-core.js — pure, and covered by tests/folder-core.test.js.
+        order = interleaveFolders(unraidOrder, order, folders);
 
         // debug mode, download the debug json file
         if(folderDebugMode) {
@@ -143,7 +128,7 @@ const createFolders = async () => {
                 folders,
                 unraidOrder,
                 originalOrder: JSON.parse(await $.get('/plugins/unraid-folderview/server/read_unraid_order.php?type=vm').promise()),
-                newOnes,
+                newOnes: order.filter(x => !unraidOrder.includes(x)),
                 order,
                 vmInfo
             })));
@@ -173,7 +158,6 @@ const createFolders = async () => {
                 let id = container.replace(folderRegex, '');
                 if (folders[id]) {
                     key -= createFolderVM(folders[id], id, key, order, vmInfo, Object.keys(foldersDone));
-                    key -= newOnes.length;
                     // Move the folder to the done object and delete it from the undone one
                     foldersDone[id] = folders[id];
                     delete folders[id];

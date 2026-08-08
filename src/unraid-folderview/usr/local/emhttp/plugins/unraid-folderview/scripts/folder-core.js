@@ -13,25 +13,44 @@
 const folderRegex = /^folder-/;
 
 /**
- * Transcription of the reconciliation currently inlined at docker.js:32-43.
- * Kept only so its behaviour is pinned by tests before it is replaced. Deleted in Task 3.
+ * Interleave `folder-<id>` placeholders into the live container order.
+ *
+ * Anchors each folder on a real neighbour rather than on an index offset: a folder goes
+ * immediately before the first container that follows it in `prefsOrder` and is actually
+ * present in `liveOrder`. This is correct no matter where containers absent from
+ * userprefs.cfg happen to sort, which the previous `+ newOnes.length` arithmetic was not —
+ * that offset assumed Unraid's front-loading, while the plugin's own readUnraidOrder
+ * back-loads them (lib.php:411).
+ *
+ * `liveOrder` is preserved exactly as a subsequence of the result — the caller uses the
+ * result index as a DOM index, so reordering live containers here would move the wrong row.
+ *
  * @param {string[]} prefsOrder values from userprefs.cfg — containers AND `folder-<id>` entries
  * @param {string[]} liveOrder  live container names in the order Unraid rendered them
- * @param {Object}   folders    folder definitions keyed by id
- * @returns {string[]}
+ * @param {Object}   folders    folder definitions keyed by id; entries with no definition are dropped
+ * @returns {string[]} a new array
  */
-function interleaveFoldersLegacy(prefsOrder, liveOrder, folders) {
-    const order = [...liveOrder];
-    const newOnes = liveOrder.filter(x => !prefsOrder.includes(x));
-    for (let index = 0; index < prefsOrder.length; index++) {
-        const element = prefsOrder[index];
-        if (folderRegex.test(element) && folders[element.slice(7)]) {
-            order.splice(index + newOnes.length, 0, element);
+function interleaveFolders(prefsOrder, liveOrder, folders) {
+    const out = [...liveOrder];
+    // ponytail: O(prefs x out) scan. n is the container count on one Unraid box (tens),
+    // so this runs in microseconds. Index the positions in a Map if it ever isn't.
+    for (let i = prefsOrder.length - 1; i >= 0; i--) {
+        const entry = prefsOrder[i];
+        if (!folderRegex.test(entry) || !folders[entry.slice(7)]) continue;
+
+        // Insert before the nearest following prefs entry that is actually in `out`.
+        // Walking prefsOrder backwards means folders inserted on earlier iterations are
+        // already in `out`, so folder-before-folder ordering falls out for free.
+        let at = out.length;
+        for (let j = i + 1; j < prefsOrder.length; j++) {
+            const k = out.indexOf(prefsOrder[j]);
+            if (k !== -1) { at = k; break; }
         }
+        out.splice(at, 0, entry);
     }
-    return order;
+    return out;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { folderRegex, interleaveFoldersLegacy };
+    module.exports = { folderRegex, interleaveFolders };
 }

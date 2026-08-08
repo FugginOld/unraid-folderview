@@ -28,19 +28,9 @@ const createFolders = async () => {
     }
 
 
-    // Filter the order to get the container that aren't in the order, this happen when a new container is created
-    const newOnes = order.filter(x => !unraidOrder.includes(x));
-    if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: newOnes (containers not in unraidOrder)', newOnes);
-
-
-    // Insert the folder in the unraid folder into the order shifted by the unlisted containers
-    for (let index = 0; index < unraidOrder.length; index++) {
-        const element = unraidOrder[index];
-        if((folderRegex.test(element) && folders[element.slice(7)])) {
-            if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] createFolders: Splicing folder ${element} into order at index ${index + newOnes.length}`);
-            order.splice(index+newOnes.length, 0, element);
-        }
-    }
+    // Interleave the folder placeholders saved in userprefs.cfg into the live order.
+    // See folder-core.js — pure, and covered by tests/folder-core.test.js.
+    order = interleaveFolders(unraidOrder, order, folders);
     if (FOLDER_VIEW_DEBUG_MODE) console.log('[FV2_DEBUG] createFolders: Order after inserting Unraid-ordered folders', [...order]);
 
 
@@ -65,7 +55,7 @@ const createFolders = async () => {
             folders,
             unraidOrder,
             originalOrder: JSON.parse(await $.get('/plugins/unraid-folderview/server/read_unraid_order.php?type=docker').promise()),
-            newOnes,
+            newOnes: order.filter(x => !unraidOrder.includes(x)),
             order,
             containersInfo
         })));
