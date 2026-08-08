@@ -261,7 +261,7 @@ async function that touches jQuery, `MutationObserver` and the network. Transcri
 first gives a green baseline proving the transcription is faithful, so that when Task 3's
 test goes red we know the red is the *bug* and not a transcription slip.
 
-- [ ] **Step 1: Write the characterization tests**
+- [x] **Step 1: Write the characterization tests**
 
 Append to `tests/folder-core.test.js`:
 
@@ -297,12 +297,12 @@ test('legacy: correct when new containers arrive at the FRONT (Unraid behaviour)
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.interleaveFoldersLegacy is not a function`
 
-- [ ] **Step 3: Transcribe the current logic**
+- [x] **Step 3: Transcribe the current logic**
 
 Add to `folder-core.js`, above the export block:
 
@@ -336,13 +336,13 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/*.test.js`
 Expected: PASS, 6/6. All four characterization tests green — the transcription is faithful
 and the offset arithmetic is correct *given its stated premise*.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/folder-core.test.js src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder-core.js

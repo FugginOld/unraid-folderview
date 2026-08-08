@@ -12,6 +12,26 @@
 /** Matches the `folder-<id>` pseudo-container entries the plugin stores in Unraid's own order list. */
 const folderRegex = /^folder-/;
 
+/**
+ * Transcription of the reconciliation currently inlined at docker.js:32-43.
+ * Kept only so its behaviour is pinned by tests before it is replaced. Deleted in Task 3.
+ * @param {string[]} prefsOrder values from userprefs.cfg — containers AND `folder-<id>` entries
+ * @param {string[]} liveOrder  live container names in the order Unraid rendered them
+ * @param {Object}   folders    folder definitions keyed by id
+ * @returns {string[]}
+ */
+function interleaveFoldersLegacy(prefsOrder, liveOrder, folders) {
+    const order = [...liveOrder];
+    const newOnes = liveOrder.filter(x => !prefsOrder.includes(x));
+    for (let index = 0; index < prefsOrder.length; index++) {
+        const element = prefsOrder[index];
+        if (folderRegex.test(element) && folders[element.slice(7)]) {
+            order.splice(index + newOnes.length, 0, element);
+        }
+    }
+    return order;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { folderRegex };
+    module.exports = { folderRegex, interleaveFoldersLegacy };
 }
