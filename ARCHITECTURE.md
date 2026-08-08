@@ -546,8 +546,11 @@ already whitelists correctly, so the pattern is in the codebase — it just wasn
 applied to the other five call sites.
 
 **Two broken release-manifest facts** — the `master`-vs-`main` package URL and the
-stale version entity. Both in `folder.view2.plg`, both would make a fresh install
-from this repo fail or install the wrong build. These are the first things to fix.
+stale version entity, both of which would make a fresh install fail or fetch the
+wrong build. **Fixed on this branch**, but upstream still carries both, so they
+return on any merge from there. The underlying fragility remains: `version` and
+`md5` are entities the `<URL>` is built from, so a wrong value fails silently at
+install time rather than loudly at edit time.
 
 **No tests, no CI, no linter.** Understandable — nothing here runs off an Unraid
 box. But `lib.php`'s pure functions (`readUnraidOrder`'s sort, `dirToArrayOfFiles`,

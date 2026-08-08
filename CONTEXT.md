@@ -194,18 +194,19 @@ is the fastest way to diagnose an ordering bug. There is also a compile-time-ish
 Things that will bite you. Details and reasoning in
 [ARCHITECTURE.md §7](ARCHITECTURE.md#7-honest-assessment).
 
-1. **The `.plg` package URL points at a branch that does not exist.**
-   [folder.view2.plg:290](folder.view2.plg#L290) fetches from
-   `raw.github.com/VladoPortos/folder.view2/**master**/archive/…` while
-   [line 8](folder.view2.plg#L8) uses `**main**` for the plugin URL. It also points
-   at the upstream repo, not this fork.
+1. **The `.plg` manifest is easy to leave inconsistent, and was.** Two defects —
+   a `<URL>` built from a non-existent `master` branch, and a `version` entity two
+   releases behind `archive/` — are **fixed on this branch**
+   ([folder.view2.plg:9,10,290](folder.view2.plg#L290)), but upstream still carries
+   both, so they will return on any merge from there.
 
-2. **The `.plg` version is stale.** It declares `2025.04.13`
-   ([folder.view2.plg:9](folder.view2.plg#L9)) but `archive/` contains builds through
-   `2025.05.26`. Installing from the manifest gets you an older package than the repo
-   holds.
+   The durable lesson for anyone cutting a release: `version` and `md5` are
+   *entities consumed by the `<URL>`*, so a wrong value doesn't fail loudly — it
+   builds a URL that 404s or serves the wrong package. `pkg_build.sh` rewrites both
+   automatically; hand-editing either one is where this went wrong. Always verify
+   the resolved URL actually exists before publishing.
 
-3. **A real security chain — CSRF → path traversal → stored XSS, running as root.**
+2. **A real security chain — CSRF → path traversal → stored XSS, running as root.**
    Three separate gaps that compose. Treat this as a genuine finding, not hygiene:
 
    - **No CSRF token on the mutating endpoints.** `create.php`, `update.php` and
@@ -229,7 +230,7 @@ Things that will bite you. Details and reasoning in
    Unraid's `csrf_token` convention, and escape the two interpolations. Roughly
    25 lines total.
 
-4. **The plugin depends on Unraid internals it does not declare.** Two kinds:
+3. **The plugin depends on Unraid internals it does not declare.** Two kinds:
 
    - *Patched:* `window.loadlist` and `window.listview` are wrapped;
      `$.ajaxPrefilter` intercepts `UserPrefs.php`, `DashboardApps.php`, and
@@ -244,7 +245,7 @@ Things that will bite you. Details and reasoning in
    signature change, but with no patch site to grep for. Re-verify after any Unraid
    update — the changelog is years of exactly that.
 
-5. **Ordering is index arithmetic over a live-mutated array.** `createFolder` returns
+4. **Ordering is index arithmetic over a live-mutated array.** `createFolder` returns
    a count of absorbed rows and the caller rewinds its loop counter by it
    ([docker.js:124-126](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L124-L126)).
    It is the single most fragile thing in the codebase and the source of most
@@ -252,19 +253,19 @@ Things that will bite you. Details and reasoning in
    [ARCHITECTURE.md §4.3](ARCHITECTURE.md#43-reconciling-two-orderings) for a known
    unresolved inconsistency feeding it.
 
-6. **`readInfo` shells out per *Tailscale-enabled* container.** Those trigger up to
+5. **`readInfo` shells out per *Tailscale-enabled* container.** Those trigger up to
    two `docker exec` calls each, serially, on *every* list refresh
    ([lib.php:29-71](src/folder.view2/usr/local/emhttp/plugins/folder.view2/server/lib.php#L29-L71)).
    Names are regex-validated *and* `escapeshellarg`'d, so this one is genuinely safe
    — it is purely a latency problem. Containers without Tailscale cost nothing.
 
-7. **~290 of `docker.js`'s 1752 lines are debug logging** guarded by a constant that
+6. **~290 of `docker.js`'s 1752 lines are debug logging** guarded by a constant that
    ships as `false`. There is also dead debug code keyed to one specific folder ID
    from the original author's own server
    ([docker.js:206-210](src/folder.view2/usr/local/emhttp/plugins/folder.view2/scripts/docker.js#L206-L210)).
    Read past both.
 
-8. **`pkg_build.sh` runs `chmod 0755 -R .` across the whole repo** — twice, including
+7. **`pkg_build.sh` runs `chmod 0755 -R .` across the whole repo** — twice, including
    `.git`. Be aware before running it anywhere you care about file modes.
 
 ---
