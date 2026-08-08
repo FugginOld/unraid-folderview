@@ -4,9 +4,11 @@
 
 ---
 
-## STATUS — paused 2026-08-08 00:38 EDT, branch `dev`
+## STATUS — paused 2026-08-08 00:47 EDT, branch `dev` (pushed)
 
-**47 of 60 steps ticked. Working tree clean. All local verification green.**
+**47 of 66 steps ticked. Working tree clean. All local verification green.**
+
+`dev` is pushed and tracking `origin/dev` at `257b8bf` — 14 commits ahead of `main`.
 
 ```
 node --test tests/*.test.js   →  20 pass, 0 fail
@@ -23,7 +25,26 @@ node --check                  →  folder-core.js, docker.js, vm.js, dashboard.j
 | 6 — CSRF guard + POST-only delete | code done, **on-box check open** | `b0fef02` |
 | 7 — `htmlEscape` at 19 sinks | code done, **on-box check open** | `17f4c3f` |
 | 8 — `folderLog` collapse | code done, **on-box check open** | `a78cf31` |
+| 9 — escape DOM-read sinks in `folder.js` | **not started** — added after CodeQL found what Task 7 missed | — |
 | E / F / G | designs only, in the appendix | — |
+
+### Code scanning
+
+Default CodeQL setup, **`javascript-typescript` only, weekly, default branch + PRs**. Two
+consequences worth internalising:
+
+- **Pushing `dev` does not trigger a scan.** Verified: `code-scanning/analyses?ref=refs/heads/dev`
+  returns `[]` after the push, and the only run on record is `31235382646` against `main`.
+  To get `dev` scanned, open a PR `dev → main` — that is the only path short of merging.
+- **CodeQL has no PHP support.** The whole of Phase C's server side — CSRF guard, `$type`
+  whitelist, FQDN validation — is invisible to this tool in both directions. A clean scan is
+  not coverage there.
+
+The 7 open alerts are all `js/xss-through-dom` on `main`, against pre-rename
+`src/folder.view2/` paths. Three (`#2/#4/#5`) are real and become Task 9; three are in
+unpackaged `orig_folder.js`; one is vendored. Expect churn when `dev` is eventually scanned:
+the `folder.js` alerts will re-report under the new path as new numbers and the old ones
+will close as their paths vanish. That is not a regression.
 
 ### Resume here
 
@@ -40,8 +61,9 @@ behaviour no local test can reach, and Phase E rewrites the very loop three of t
 4. **Task 8 Step 9** — console clean on load; `FOLDER_VIEW_DEBUG_MODE = true` in the console
    then refresh the list produces `[FV2_DEBUG]` output without a page reload.
 
-**Then, in order:** Task 4 (two one-line PHP edits, needs a PHP-capable box), then write the
-Phase E plan as its own document.
+**Then, in order:** Task 9 (fully local, ~15 min — but read its blocker first: `Folder.page`
+does not load `folder-core.js` yet), Task 4 (two one-line PHP edits, needs a PHP-capable
+box), then write the Phase E plan as its own document.
 
 ### Things a fresh reader will get wrong
 
@@ -1252,6 +1274,120 @@ equivalents there; they do not exist.
 git add tests/folder-core.test.js src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/
 git commit -m "fix(security): escape untrusted values at every HTML interpolation site"
 ```
+
+---
+
+### Task 9: Escape the DOM-read sinks in `folder.js`
+
+**Added after CodeQL flagged what Task 7 missed.** Task 7 scoped its sink inventory to
+"the three renderers" — `docker.js`, `vm.js`, `dashboard.js`. `folder.js`, the folder
+create/edit form, builds HTML the same way and was never swept. GitHub code scanning
+reported it three times on `main` (alerts #2, #4, #5, rule `js/xss-through-dom`).
+
+**Different rule, same fix.** `js/xss-through-dom` is text read *out* of the DOM and
+written back *in* as HTML — distinct from Task 7's "untrusted data into a template
+literal", which is why `htmlEscape` at the docker/vm/dashboard sinks did nothing for these.
+The remedy is the same helper applied at the same kind of boundary.
+
+**Severity note.** These values round-trip through `docker.json` and are re-rendered on
+edit, so before Task 6 they were remotely plantable. With the mutating endpoints now
+CSRF-guarded and POST-only, reaching them requires an authenticated admin typing the
+payload into their own form. Fix them, but they are no longer part of a remote chain.
+
+**Files:**
+- Modify: `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder.js:88,332,334,395`
+- Modify: `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/Folder.page:20` (load `folder-core.js`)
+
+**Interfaces:**
+- Consumes: `htmlEscape` from `folder-core.js` (Task 7).
+- Produces: nothing new.
+
+**Blocker to handle first.** `Folder.page` does **not** load `folder-core.js` — Task 1
+Step 6 deliberately excluded it, on the grounds that `folder.js` never referenced
+`folderRegex`. That reasoning no longer holds, and the note left there ("revisit if a later
+phase gives them a reason to") is now due. Without the tag, `htmlEscape` is undefined and
+every custom action silently breaks.
+
+`Folder.page` uses PHP short-open tags (`<?autov(...)?>`), not `<?php autov(...)?>`. Match
+the file, do not copy the tab-page form.
+
+- [ ] **Step 1: Load `folder-core.js` on `Folder.page`**
+
+After the existing `jquery.multiselect.js` tag at `Folder.page:20`:
+
+```php
+<script src="<?autov('/plugins/unraid-folderview/scripts/include/jquery.multiselect.js')?>"></script>
+<script src="<?autov('/plugins/unraid-folderview/scripts/folder-core.js')?>"></script>
+```
+
+No `defer` — `folder.js` at `:460` is deferred, so an ordinary script earlier in the
+document is guaranteed to run first.
+
+- [ ] **Step 2: Escape the custom-action name sinks**
+
+`folder.js:395` — `cfg.name` arrives from `that.find('[name="action_name"]').val()` at
+`:374`, a DOM read, and lands in `.append()` as markup:
+
+```js
+            $('.custom-action-wrapper').append(`<div class="custom-action-n-${(action !== undefined) ? action : customNumber}"><span>${htmlEscape(cfg.name)} </span><button onclick="return customAction(${(action !== undefined) ? action : customNumber});">...
+```
+
+`folder.js:88` — the same block rebuilt from the persisted config:
+
+```js
+            $('.custom-action-wrapper').append(`<div class="custom-action-n-${i}">${htmlEscape(e.name)} <button onclick="return customAction(${i});">...
+```
+
+Leave the `btoa(JSON.stringify(...))` hidden-field values alone — base64 contains no HTML
+meta-characters, and escaping them would corrupt the round-trip through `atob`.
+
+- [ ] **Step 3: Escape the container `<option>` sinks**
+
+`folder.js:332` and `:334` — `e` comes from
+`$('input[name*="containers"]:checked').map((i, e) => $(e).val())` at `:330`:
+
+```js
+            selectCt.append(`<option value="${htmlEscape(e)}" selected>${htmlEscape(e)}</option>`);
+        } else {
+            selectCt.append(`<option value="${htmlEscape(e)}">${htmlEscape(e)}</option>`);
+```
+
+- [ ] **Step 4: Verify locally**
+
+```bash
+F=src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder.js
+grep -n '\.append(`\|\.html(`\|\.prepend(`' $F        # every hit must interpolate only htmlEscape(...) or a number
+grep -n 'folder-core.js' src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/Folder.page
+node --check $F
+node --test tests/*.test.js
+```
+
+Expected: the four `.append()` sites all escaped, `Folder.page` loads the module, syntax
+clean, suite 20/20. `folderview2.js` needs no change — it has zero interpolated
+`.append()`/`.html()` calls, already confirmed.
+
+- [ ] **Step 5: Verify on an Unraid box (manual)**
+
+1. Create a folder, add a custom action named `<img src=x onerror=alert(1)>`, save.
+2. Reopen the folder for editing. The action name must render as literal text, no dialog.
+3. The action must still fire correctly, and its hidden `custom_action[]` field must still
+   `atob` cleanly — this is what a botched escape of the base64 would break.
+4. Tick some containers and confirm the multiselect `<option>` list still populates and
+   saves.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder.js
+git add src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/Folder.page
+git commit -m "fix(security): escape DOM-read values in the folder form"
+```
+
+**Out of scope, decide separately:** alerts #1/#3/#6 are in `orig_folder.js`, an
+unreferenced 415-line legacy copy at the repo root that `pkg_build.sh` never packages.
+Alert #7 is in vendored `jquery.multiselect.js`. Deleting `orig_folder.js` clears three alerts at
+no runtime risk; keeping it is only worth it as a reference copy. The vendored library is
+not ours to patch.
 
 ---
 
