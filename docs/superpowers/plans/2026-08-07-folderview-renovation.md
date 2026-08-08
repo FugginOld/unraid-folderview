@@ -1024,7 +1024,7 @@ git commit -m "fix(security): require CSRF token on mutating endpoints, POST-onl
 | `ct.info.State.TSWebUi` | container-supplied Tailscale `DNSName` | Task 5 validates it at source; escaping here is the second layer. |
 | `ct.info.Name` | docker container name | Docker constrains names to `[a-zA-Z0-9][a-zA-Z0-9_.-]*`. Escape anyway — it costs nothing and removes the need to re-derive that argument later. |
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/folder-core.test.js`:
 
@@ -1058,12 +1058,12 @@ test('htmlEscape is idempotent-safe for the ampersand case', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.htmlEscape is not a function` (4 failures).
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 Add to `folder-core.js`:
 
@@ -1094,12 +1094,12 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/*.test.js`
 Expected: PASS, 14/14.
 
-- [ ] **Step 5: Apply it at the folder-row sink**
+- [x] **Step 5: Apply it at the folder-row sink**
 
 In `docker.js:270`, the `fld` template literal. Wrap the two attacker-reachable values:
 
@@ -1111,7 +1111,7 @@ Only `folder.icon` and `folder.name` change; the rest of the literal is untouche
 a 20-character value from `generateId()` (base64 with `+/=` stripped, so alphanumeric only)
 and is safe as written.
 
-- [ ] **Step 6: Apply it at the tooltip sinks**
+- [x] **Step 6: Apply it at the tooltip sinks**
 
 `docker.js:770`:
 
@@ -1134,7 +1134,7 @@ and is safe as written.
 The adjacent `ct.info.State.WebUi` href gets the same treatment — it is assembled in
 `lib.php` from template placeholders and container network data, not from a constant.
 
-- [ ] **Step 7: Apply it in `vm.js` and `dashboard.js`**
+- [x] **Step 7: Apply it in `vm.js` and `dashboard.js`**
 
 Both files carry near-identical template literals. Find the interpolation sites:
 
@@ -1147,15 +1147,39 @@ grep -n 'folder.icon\|folder.name\|net.unraid.docker.icon\|TSWebUi\|ct.info.Name
 Wrap each in `htmlEscape(...)`. `dashboard.js` has two sets — one for docker, one for VMs;
 do both. VM equivalents of `ct.info.Name` are the domain name from libvirt.
 
-- [ ] **Step 8: Verify no sink was missed**
+- [x] **Step 8: Verify no sink was missed**
 
-Run:
+Run this, which catches any quoted attribute sink regardless of which value feeds it:
 
 ```bash
-grep -rn 'src="${folder.icon\|>${folder.name\|href="${ct.info.State' src/
+grep -on '\(src\|href\)="${[^}]*}"' src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/*.js | grep -v htmlEscape
+grep -on '>${folder\.name}<\|>${ct\.info\.Name}<' src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/*.js
 ```
 
-Expected: no output — every hit would be an unescaped sink.
+Expected: no output from either — every hit would be an unescaped sink.
+
+**Found during execution — the sink surface is 19, not the 8 the table above implies.**
+`docker.js` puts five more untrusted values into `href` attributes that the table did not
+name, all from the XML template or docker labels, i.e. the same trust level as `WebUi`:
+
+| Line | Value |
+|---|---|
+| `docker.js:798` | `ct.info.ReadMe` |
+| `docker.js:799` | `ct.info.Project` |
+| `docker.js:800` | `ct.info.Support` |
+| `docker.js:801`, `:808` | `ct.info.registry` (two sinks) |
+| `docker.js:802` | `ct.info.DonateLink` |
+| `docker.js:885` | a second `ct.info.State.WebUi` |
+
+This is what commit `52b4f7c` ("widen the XSS finding to the full sink surface") was
+pointing at. Escape all of them — the grep above is the authority, not the table.
+
+All five are wrapped in truthiness guards (`${ct.info.ReadMe ? \`…\` : ''}`), so
+`htmlEscape`'s `undefined → ''` coercion changes nothing about what renders.
+
+`dashboard.js` and `vm.js` have **no** per-container tooltip sinks — only their folder
+rows (`dashboard.js:245` and `:433`, `vm.js:127`). Do not go looking for tooltip
+equivalents there; they do not exist.
 
 - [ ] **Step 9: Verify on an Unraid box (manual)**
 

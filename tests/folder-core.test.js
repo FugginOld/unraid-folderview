@@ -72,3 +72,33 @@ test('every live container survives, in order', () => {
   const out = core.interleaveFolders(prefs, live, { F1: {}, F2: {} });
   assert.deepStrictEqual(out.filter(n => !core.folderRegex.test(n)), live);
 });
+
+// --- htmlEscape ---
+
+test('htmlEscape neutralises tag and attribute breakouts', () => {
+  assert.strictEqual(core.htmlEscape('<script>alert(1)</script>'),
+    '&lt;script&gt;alert(1)&lt;/script&gt;');
+  assert.strictEqual(core.htmlEscape('" onerror="alert(1)'),
+    '&quot; onerror=&quot;alert(1)');
+  assert.strictEqual(core.htmlEscape("' onload='alert(1)"),
+    '&#39; onload=&#39;alert(1)');
+  assert.strictEqual(core.htmlEscape('a & b'), 'a &amp; b');
+});
+
+test('htmlEscape leaves ordinary folder names alone', () => {
+  assert.strictEqual(core.htmlEscape('Media'), 'Media');
+  assert.strictEqual(core.htmlEscape('*arr stack'), '*arr stack');
+});
+
+test('htmlEscape coerces non-strings without throwing', () => {
+  assert.strictEqual(core.htmlEscape(null), '');
+  assert.strictEqual(core.htmlEscape(undefined), '');
+  assert.strictEqual(core.htmlEscape(0), '0');
+  assert.strictEqual(core.htmlEscape(false), 'false');
+});
+
+test('htmlEscape is idempotent-safe for the ampersand case', () => {
+  // Double-escaping is ugly but not a vulnerability; assert the behaviour so a future
+  // change to "escape once" is a deliberate decision rather than an accident.
+  assert.strictEqual(core.htmlEscape(core.htmlEscape('<b>')), '&amp;lt;b&amp;gt;');
+});

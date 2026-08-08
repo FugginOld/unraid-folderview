@@ -51,6 +51,23 @@ function interleaveFolders(prefsOrder, liveOrder, folders) {
     return out;
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+/**
+ * Escape a value for interpolation into an HTML template literal — safe for text content
+ * and for double- or single-quoted attribute values alike.
+ *
+ * Every row, preview and tooltip in this plugin is built by string concatenation, so this
+ * has to be applied at the interpolation site; there is no framework doing it for us.
+ *
+ * @param {*} value
+ * @returns {string}
+ */
+function htmlEscape(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { folderRegex, interleaveFolders };
+    module.exports = { folderRegex, interleaveFolders, htmlEscape };
 }
