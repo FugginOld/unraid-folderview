@@ -2,6 +2,63 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+---
+
+## STATUS — paused 2026-08-08 00:38 EDT, branch `dev`
+
+**47 of 60 steps ticked. Working tree clean. All local verification green.**
+
+```
+node --test tests/*.test.js   →  20 pass, 0 fail
+node --check                  →  folder-core.js, docker.js, vm.js, dashboard.js all OK
+```
+
+| Task | State | Commit |
+|---|---|---|
+| 1 — test harness + `folder-core.js` | done | `dfa9226` |
+| 2 — characterize reconciliation | done (throwaway, deleted in 3) | `9f74034` |
+| 3 — anchor-based `interleaveFolders` | code done, **on-box check open** | `06c2867` |
+| 4 — PHP `readUnraidOrder` front-sort | **DEFERRED by request** | — |
+| 5 — `$type` whitelist + FQDN validation | done | `b0fef02` |
+| 6 — CSRF guard + POST-only delete | code done, **on-box check open** | `b0fef02` |
+| 7 — `htmlEscape` at 19 sinks | code done, **on-box check open** | `17f4c3f` |
+| 8 — `folderLog` collapse | code done, **on-box check open** | `a78cf31` |
+| E / F / G | designs only, in the appendix | — |
+
+### Resume here
+
+**Do this first — four on-box verifications, against a build from `dev`.** They cover
+behaviour no local test can reach, and Phase E rewrites the very loop three of them check.
+
+1. **Task 3 Step 9** — two or more folders on the VMs tab, dragged apart, refresh. They must
+   hold position. One folder will not reveal the bug. Then the same on Dashboard.
+2. **Task 6 Step 5** — create/rename/delete a folder on Docker, VMs and
+   Settings → Utilities. Then confirm the guard bites:
+   `curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost/plugins/unraid-folderview/server/delete.php -d 'type=docker&id=x'` → `403`
+3. **Task 7 Step 9** — create a folder named `<img src=x onerror=alert(1)>`. It must render
+   as literal text on all three tabs, with no dialog, and still open/rename/delete.
+4. **Task 8 Step 9** — console clean on load; `FOLDER_VIEW_DEBUG_MODE = true` in the console
+   then refresh the list produces `[FV2_DEBUG]` output without a page reload.
+
+**Then, in order:** Task 4 (two one-line PHP edits, needs a PHP-capable box), then write the
+Phase E plan as its own document.
+
+### Things a fresh reader will get wrong
+
+- **`node --test tests/` fails on Windows** (resolves the directory as a module path).
+  Always `node --test tests/*.test.js`.
+- **No PHP locally.** `lib.php` has had a brace-balance check and a read-through, never
+  `php -l`. Treat every PHP change as unverified until it runs on a box.
+- **`folder-core.js` symbols are page globals.** Anything moved into it must be *deleted*
+  from `docker.js`/`vm.js`/`dashboard.js`, or the page dies with a redeclaration
+  `SyntaxError`. `grep -rn "const folderRegex" src/` must return exactly one hit.
+- **Task 3 deleted `key -= newOnes.length`** from `vm.js` and both `dashboard.js`
+  renderers. `docker.js` never had it. That is a real behaviour change, unverified.
+- Three uncommitted-looking edits earlier in the session were the user's own (Ko-fi removal),
+  committed as `7168345`. Not plan work.
+
+---
+
 **Goal:** Close the plugin's security chain, fix the ordering bug that has generated
 "folder appears in the wrong place" reports for two years, and leave behind a test
 harness so the two large refactors that follow are safe to attempt.
