@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FolderView2 — UI review</title>
+<style>
+html,body{margin:0;background:#121212;font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:8px;padding:12px 20px;background:rgba(18,18,18,.94);backdrop-filter:blur(8px);border-bottom:1px solid #262626}
+#nav .brand{font:600 12.5px system-ui,sans-serif;color:#f0f0f0;margin-right:8px}
+#nav .ver{font:400 10.5px ui-monospace,Menlo,monospace;color:#6f6f6f;margin-right:auto}
+#nav button{font:600 11.5px system-ui,sans-serif;color:#c4c4c4;background:#212121;border:1px solid #333;border-radius:6px;padding:7px 14px;cursor:pointer}
+#nav button:hover{background:#2a2a2a;color:#ededed}
+#nav button[aria-selected="true"]{background:#ff8c2f;border-color:#ff8c2f;color:#151515}
+.page{display:none}
+.page.on{display:block}
+#page-review{overflow-x:auto}
+@media print{#nav{display:none}.page{display:block!important}}
+#page-review{background:#121212}#page-review{margin:0;background:#121212;font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}#page-review a{color:#ff9c4a}#page-review a:hover{color:#ffb877}#page-review .dv-turn{padding:40px 44px 32px;border-bottom:1px solid #232323;scroll-margin-top:16px}#page-review .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}#page-review .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#ff8c2f;color:#151515;border-radius:4px;text-decoration:none}#page-review .dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#ededed}#page-review .dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}#page-review .dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}#page-review .dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#2a2a2a;color:#d4d4d4;border-radius:5px;text-decoration:none}#page-review .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 system-ui,sans-serif;color:#9a9a9a}#page-review .dv-card{max-width:100%;border-radius:10px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.5)}#page-review .dv-note{margin:0;max-width:580px;font:400 11.5px/1.55 system-ui,sans-serif;color:#8a8a8a;text-wrap:pretty}#page-review .dv-opt:target .dv-oid{background:#ff8c2f;color:#151515}#page-review .dv-next{margin:26px 0 0;font:12px/1.6 system-ui,sans-serif;color:#8a8a8a}#page-review .pnum{font:600 13px ui-monospace,monospace;color:#e08a2c}#page-review .prow{display:grid;grid-template-columns:34px 1fr;gap:18px;padding:16px 0;border-top:1px solid #242424}#page-review .ph{font:600 14px system-ui,sans-serif;color:#ededed;margin-bottom:5px}#page-review .pb{margin:0;font:400 13px/1.6 system-ui,sans-serif;color:#a4a4a4;max-width:660px;text-wrap:pretty}#page-review .kicker{font:600 9.5px ui-monospace,Menlo,monospace;letter-spacing:.11em;text-transform:uppercase;color:#7d7d7d}#page-review .th{display:grid;align-items:center;gap:14px;padding:9px 16px;background:#161616;border-bottom:1px solid #2e2e2e;font:600 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7d7d7d}#page-review .ico{border-radius:5px;font:600 9.5px/24px ui-monospace,monospace;text-align:center;width:24px;height:24px;flex:none}#page-review .grip{width:7px;height:13px;background-image:radial-gradient(circle,#6a6a6a 1px,transparent 1.2px);background-size:3.5px 4.5px;flex:none}#page-review .chipc{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:#282828;border:1px solid #363636;font:400 12px system-ui,sans-serif;color:#e0e0e0}#page-review .col{background:#202020;border:1px solid #313131;border-radius:9px;padding:12px}#page-review .tog-on{width:34px;height:19px;border-radius:11px;background:#ff8c2f;position:relative;flex:none}#page-review .tog-off{width:34px;height:19px;border-radius:11px;background:#383838;position:relative;flex:none}#page-review .knob-r{position:absolute;right:2px;top:2px;width:15px;height:15px;border-radius:50%;background:#1a1a1a}#page-review .knob-l{position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:#8a8a8a}#page-review .btn-p{font:600 12px system-ui,sans-serif;color:#1a1a1a;background:#ff8c2f;border-radius:6px;padding:7px 18px}#page-review .btn-s{font:400 12px system-ui,sans-serif;color:#c9c9c9;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:6px;padding:7px 15px}#page-review .dot-g{width:6px;height:6px;border-radius:50%;background:#57b96a;flex:none}#page-review .dot-r{width:6px;height:6px;border-radius:50%;background:#e2564a;flex:none}#page-review .stat-g{display:inline-flex;align-items:center;gap:6px;font:400 11.5px system-ui,sans-serif;color:#7fce93}#page-review .stat-r{display:inline-flex;align-items:center;gap:6px;font:400 11.5px system-ui,sans-serif;color:#d9938c}#page-review .muted{font:400 12px system-ui,sans-serif;color:#9a9a9a}
+
+#page-report{margin:0;background:#121212;font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}#page-report a{color:#ff9c4a;text-decoration:none;border-bottom:1px solid rgba(255,156,74,.35)}#page-report a:hover{color:#ffb877;border-bottom-color:rgba(255,184,119,.6)}#page-report code{font:12px ui-monospace,Menlo,monospace;background:#232323;color:#d8c7ae;padding:1px 5px;border-radius:3px}#page-report h2{margin:0;font:600 20px/1.25 system-ui,sans-serif;color:#f2f2f2;letter-spacing:-.01em}#page-report h3{margin:0;font:600 14.5px/1.3 system-ui,sans-serif;color:#ededed}#page-report p{margin:0;font:400 13.5px/1.7 system-ui,sans-serif;color:#a4a4a4;text-wrap:pretty}#page-report .kick{font:600 9.5px ui-monospace,Menlo,monospace;letter-spacing:.13em;text-transform:uppercase;color:#7a7a7a}#page-report .sec{padding:44px 56px;border-top:1px solid #232323}#page-report .wrap{max-width:840px}#page-report .pill{display:inline-block;font:600 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;padding:4px 9px;border-radius:4px}
+
+</style>
+</head>
+<body>
+<nav id="nav">
+  <span class="brand">FolderView2 · UI review</span>
+  <span class="ver">Unraid 7 · Aug 2026</span>
+  <button id="t-report" aria-selected="true" onclick="showPage('report')">Report</button>
+  <button id="t-review" aria-selected="false" onclick="showPage('review')">Nine directions</button>
+</nav>
+<div id="page-report" class="page on">
+<div style="background:#121212;min-height:100vh;padding-bottom:60px">
+
+<div style="padding:64px 56px 40px;border-bottom:1px solid #232323;background:linear-gradient(180deg,#181614 0%,#121212 100%)">
+  <div class="wrap">
+    <span class="pill" style="background:#2a2118;color:#ffb877;border:1px solid #3d3020">UI review · Unraid 7</span>
+    <h1 style="margin:20px 0 14px;font:600 36px/1.14 system-ui,sans-serif;color:#f4f4f4;letter-spacing:-.025em;max-width:700px">FolderView2: making folders feel native, and organising feel physical</h1>
+    <p style="max-width:660px;font-size:15px;line-height:1.65">FolderView2 groups Docker containers and VMs into folders inside Unraid's own Docker and VMs tabs. Every recommendation here stays inside that environment — same page chrome, same table, same four themes, no new framework. The plugin's existing jQuery, jQuery UI sortable and CSS cover all of it.</p>
+    <div style="display:flex;gap:36px;margin-top:30px;flex-wrap:wrap">
+      <div><div class="kick" style="margin-bottom:6px">Scope</div><div style="font:400 13px system-ui,sans-serif;color:#c4c4c4">Setup pages, folder rows, dialogs</div></div>
+      <div><div class="kick" style="margin-bottom:6px">Target</div><div style="font:400 13px system-ui,sans-serif;color:#c4c4c4">Unraid 7 · white, black, azure, gray</div></div>
+      <div><div class="kick" style="margin-bottom:6px">Mockups</div><div style="font:400 13px system-ui,sans-serif;color:#c4c4c4"><a href="FolderView2 UI Review.dc.html">Nine directions, 1a–1i</a></div></div>
+      <div><div class="kick" style="margin-bottom:6px">Date</div><div style="font:400 13px system-ui,sans-serif;color:#c4c4c4">7 August 2026</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sec" style="border-top:none">
+  <div class="wrap">
+    <div class="kick" style="margin-bottom:14px">Method</div>
+    <div style="border:1px solid #2b2b2b;border-left:3px solid #6a5a3a;border-radius:8px;padding:18px 20px;background:#191919">
+      <p style="color:#b4b4b4">This review was written from the repository README, the Community Apps listing and the FolderView forum threads. Repository file contents were not readable in this session, so the plugin's actual <code>.page</code>, <code>folder.js</code> and CSS were not inspected. Treat everything below as direction rather than as diffs against your current markup — the diagnosis of each problem is behavioural and holds regardless, but exact selectors and values will need adapting.</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="wrap">
+    <div class="kick" style="margin-bottom:16px">Findings</div>
+    <h2 style="margin-bottom:26px">Five problems, in priority order</h2>
+
+    <div style="display:flex;flex-direction:column;gap:0">
+
+      <div style="display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;border-top:1px solid #242424">
+        <span style="font:600 14px ui-monospace,monospace;color:#e08a2c">01</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h3>Assignment happens in a dialog, one folder at a time</h3>
+          <p>Sorting thirty containers means opening the edit dialog once per folder and hunting through a multiselect. The task is spatial — it wants a board, not a form. A dedicated Organise mode with connected sortable columns turns a five-minute chore into a five-second one, and it is reachable from a single button next to Add Folder without touching the Docker table at all.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span class="pill" style="background:#1e2a1e;color:#8fd39f;border:1px solid #2c3f2c">Highest impact</span><span class="pill" style="background:#23232a;color:#a3a3c0;border:1px solid #33333f">Mockup 1d</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;border-top:1px solid #242424">
+        <span style="font:600 14px ui-monospace,monospace;color:#e08a2c">02</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h3>A folder does not read as a folder</h3>
+          <p>It occupies a container row but behaves like a container. Nothing signals that it holds six things, that five are running, or that one just died. Give the folder row a left accent rail, indent its children under a lighter continuation of that rail, and put a status dot-strip where the container status would be. The table becomes legible without expanding anything.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span class="pill" style="background:#1e2a1e;color:#8fd39f;border:1px solid #2c3f2c">Low risk</span><span class="pill" style="background:#23232a;color:#a3a3c0;border:1px solid #33333f">Mockups 1a, 1b, 1c</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;border-top:1px solid #242424">
+        <span style="font:600 14px ui-monospace,monospace;color:#e08a2c">03</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h3>The settings page is an undifferentiated stack</h3>
+          <p>Controls sit at one visual weight with no grouping and no explanation of what each does. Unraid's own settings pages use a two-column label/control grid with a fixed label width; adopting that grid, adding section kickers, and putting one line of help under anything ambiguous removes most of the ugliness. Tabs — Appearance, Folders, Import &amp; export, Advanced — handle the rest.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span class="pill" style="background:#2a2118;color:#ffb877;border:1px solid #3d3020">Cheapest fix</span><span class="pill" style="background:#23232a;color:#a3a3c0;border:1px solid #33333f">Mockup 1g</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;border-top:1px solid #242424">
+        <span style="font:600 14px ui-monospace,monospace;color:#e08a2c">04</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h3>Icon picking is a text field</h3>
+          <p>Users are choosing a picture, so show pictures. A grid with search, a tint row, and — first — the icons of the containers already inside the folder, since those images are already on the server and work offline. Most people want the Plex mark on the Media folder; that should be two clicks, with library, upload and URL behind it.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span class="pill" style="background:#23232a;color:#a3a3c0;border:1px solid #33333f">Mockup 1f</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:44px 1fr;gap:20px;padding:22px 0;border-top:1px solid #242424;border-bottom:1px solid #242424">
+        <span style="font:600 14px ui-monospace,monospace;color:#e08a2c">05</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h3>Nothing is themed from Unraid's own variables</h3>
+          <p>Hard-coded colours are why the Community Apps listing still carries a caveat about custom themes. Only four values actually vary across themes, and three of them can be read from the page rather than declared: surface from the table row background, text from the inherited page colour, borders as that text at low alpha. Add exactly one plugin variable, <code>--fv-accent</code>, for the folder accent. Four themes then come free.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span class="pill" style="background:#2a1a1a;color:#e39a90;border:1px solid #3f2626">Known issue</span><span class="pill" style="background:#23232a;color:#a3a3c0;border:1px solid #33333f">Mockup 1i</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="wrap">
+    <div class="kick" style="margin-bottom:16px">Recommendations</div>
+    <h2 style="margin-bottom:8px">What to build, in what order</h2>
+    <p style="margin-bottom:26px;max-width:660px">Each stage is independently shippable. Nothing later depends on anything earlier being finished, so the sequence can be reordered around whatever you feel like working on.</p>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#1a1a1a;background:#ff8c2f;border-radius:4px;padding:3px 8px">Stage 1</span><h3>Settings page grid and tabs</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">CSS only</span></div>
+        <div style="padding:16px 18px"><p>A 190px label column, section kickers, help text under ambiguous controls, four tabs, and a sticky footer holding Apply. No behaviour changes, no data migration. This is the change users will notice first.</p></div>
+      </div>
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#1a1a1a;background:#ff8c2f;border-radius:4px;padding:3px 8px">Stage 2</span><h3>Theme derivation</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">CSS only</span></div>
+        <div style="padding:16px 18px"><p>Replace hard-coded colours with values derived from the page using <code>color-mix()</code> against the inherited text colour, plus a single <code>--fv-accent</code> variable. Do this before the folder row work so the new row styling is theme-safe from the start.</p></div>
+      </div>
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#1a1a1a;background:#ff8c2f;border-radius:4px;padding:3px 8px">Stage 3</span><h3>Folder row: rail, indent, status strip</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">CSS + small JS</span></div>
+        <div style="padding:16px 18px"><p>Mockup 1a as the base. Add the collapsed summary from 1c behind a per-folder toggle — aggregate CPU and memory can be summed from stats already being polled, and folder-level start/stop/restart falls out of the same grouping. Drag-reorder should show a 2px insertion line rather than shuffling rows under the cursor.</p></div>
+      </div>
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#1a1a1a;background:#ff8c2f;border-radius:4px;padding:3px 8px">Stage 4</span><h3>Dialog and icon picker</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">Markup + JS</span></div>
+        <div style="padding:16px 18px"><p>Containers become removable chips instead of a multiselect; the icon becomes a picture you click; every toggle gets a one-line explanation; the delete action moves far left, away from Save. The icon picker leads with images already on the server.</p></div>
+      </div>
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#1a1a1a;background:#ff8c2f;border-radius:4px;padding:3px 8px">Stage 5</span><h3>Organise mode</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">New view</span></div>
+        <div style="padding:16px 18px"><p>The drag-and-drop board. Ungrouped column on the left, one column per folder, jQuery UI sortable with connected lists, changes buffered until Done. Compose-managed containers show dimmed and follow their project. The Docker table underneath is untouched, so users who never open it lose nothing.</p></div>
+      </div>
+
+      <div style="border:1px solid #2b2b2b;border-radius:9px;background:#191919;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #242424;background:#1d1d1d"><span style="font:600 11px ui-monospace,monospace;color:#8a8a8a;background:#2c2c2c;border:1px solid #3a3a3a;border-radius:4px;padding:3px 8px">Optional</span><h3>First-run suggestions</h3><span style="margin-left:auto;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">Nice to have</span></div>
+        <div style="padding:16px 18px"><p>Compose project labels and image namespaces are already on every container, so the plugin can propose real groupings for free and let the user create them in one click. It is also the natural place to surface Import for people migrating from FolderView 1.</p></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="wrap">
+    <div class="kick" style="margin-bottom:16px">Open questions</div>
+    <h2 style="margin-bottom:22px">Three decisions I could not make for you</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+      <div style="border:1px solid #2b2b2b;border-radius:9px;padding:18px;background:#191919"><h3 style="margin-bottom:8px">Nested rows or flat table?</h3><p style="font-size:12.5px">Nesting folder children inside the Docker table breaks Unraid's column sorting. Mockup 1b sidesteps this by keeping the table flat and using folders as a filter bar. Worth deciding before Stage 3.</p></div>
+      <div style="border:1px solid #2b2b2b;border-radius:9px;padding:18px;background:#191919"><h3 style="margin-bottom:8px">How much stats polling?</h3><p style="font-size:12.5px">Aggregate CPU and memory on collapsed folders is the strongest single addition, but only if the numbers are already being fetched. If they are not, it is a per-folder opt-in rather than a default.</p></div>
+      <div style="border:1px solid #2b2b2b;border-radius:9px;padding:18px;background:#191919"><h3 style="margin-bottom:8px">Relationship to FolderView3?</h3><p style="font-size:12.5px">The forums point active development at FolderView3. If this fork is meant to converge rather than diverge, Stage 5 is the piece worth upstreaming and the rest is polish.</p></div>
+    </div>
+  </div>
+</div>
+
+<div style="padding:32px 56px 0;border-top:1px solid #232323">
+  <div class="wrap" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <span style="font:400 12px system-ui,sans-serif;color:#6f6f6f">Mockups for every point above:</span>
+    <a href="FolderView2 UI Review.dc.html" style="font:600 12px system-ui,sans-serif;color:#1a1a1a;background:#ff8c2f;border-radius:6px;padding:8px 16px;border:none">Open the nine directions</a>
+  </div>
+</div>
+
+</div>
+</div>
+<div id="page-review" class="page">
+<div style="padding:52px 44px 8px;max-width:920px">
+  <div style="display:inline-block;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#ffb877;background:#2a2118;border:1px solid #3d3020;border-radius:4px;padding:4px 8px;margin-bottom:20px">UI review · FolderView2 · Unraid 7</div>
+  <h1 style="margin:0 0 14px;font:600 34px/1.15 system-ui,sans-serif;color:#f4f4f4;letter-spacing:-.02em">Making folders feel native, and organising feel physical</h1>
+  <p style="margin:0 0 26px;font:400 15px/1.65 system-ui,sans-serif;color:#a4a4a4;max-width:680px;text-wrap:pretty">FolderView2 groups Docker containers and VMs into folders inside Unraid's own Docker and VMs tabs. Everything below stays inside that environment: same page chrome, same table, same four themes. Nothing here asks the user to leave Unraid or learn a second visual language.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 40px;padding:24px 0 30px;border-top:1px solid #242424;border-bottom:1px solid #242424;margin-bottom:34px">
+    <div>
+      <div class="kicker" style="margin-bottom:8px">What I worked from</div>
+      <p style="margin:0;font:400 13px/1.6 system-ui,sans-serif;color:#a4a4a4">The repo README, the Community Apps listing, and the FolderView forum threads. The GitHub file tools never came through on my side, so I could not read the actual <code style="font:12px ui-monospace,monospace;background:#232323;color:#d8c7ae;padding:1px 4px;border-radius:3px">.page</code>, <code style="font:12px ui-monospace,monospace;background:#232323;color:#d8c7ae;padding:1px 4px;border-radius:3px">folder.js</code> or CSS sources. Treat these as direction, not as pixel targets for your current markup.</p>
+    </div>
+    <div>
+      <div class="kicker" style="margin-bottom:8px">Constraints held to</div>
+      <p style="margin:0;font:400 13px/1.6 system-ui,sans-serif;color:#a4a4a4">Unraid 7 only. Works in white, black, azure and gray. No new framework — everything drawn here is reachable with the jQuery, jQuery UI sortable and CSS the plugin already ships.</p>
+    </div>
+  </div>
+
+  <h2 class="kicker" style="margin:0 0 4px;font-size:11px">The five problems worth fixing</h2>
+  <div style="display:flex;flex-direction:column;margin-bottom:44px">
+    <div class="prow"><span class="pnum">01</span><div><div class="ph">A folder does not read as a folder</div><p class="pb">It occupies a container row but behaves like a container. Nothing tells you at a glance that it holds six things, that five are running, or that one just died. Give the folder its own row treatment — a left rail, indented children, a status summary — and the table becomes legible without expanding anything.</p></div></div>
+    <div class="prow"><span class="pnum">02</span><div><div class="ph">Assignment happens in a dialog, one folder at a time</div><p class="pb">Sorting thirty containers means opening the edit dialog once per folder and hunting through a multiselect. The task is spatial — it wants a board, not a form. This is the biggest win available and it is what you asked for: drag and drop, everything visible at once. See <a class="dv-oid" href="#1d">1d</a>.</p></div></div>
+    <div class="prow"><span class="pnum">03</span><div><div class="ph">The settings page is an undifferentiated stack</div><p class="pb">Controls at one visual weight, no grouping, no explanation of what each does. Unraid's own settings pages use a two-column label/control grid with a fixed label width — adopting it costs one CSS rule and removes most of the ugliness immediately.</p></div></div>
+    <div class="prow"><span class="pnum">04</span><div><div class="ph">Icon picking is a text field</div><p class="pb">Users are choosing a picture, so show pictures. A grid with search, the icons of the containers already inside the folder offered first, and a tint row covers most cases in two clicks.</p></div></div>
+    <div class="prow" style="border-bottom:1px solid #242424"><span class="pnum">05</span><div><div class="ph">Nothing is themed from Unraid's own variables</div><p class="pb">Hard-coded colours are why the listing still carries a "custom themes might not work correctly" caveat. Derive every surface, border and text colour from the page's computed values and add exactly one plugin variable for the folder accent. Four themes then come free — see <a class="dv-oid" href="#1i">1i</a>.</p></div></div>
+  </div>
+</div>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Nine directions — mix and match</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+  <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Grouped section — folder header, children indented under a rail</div>
+  <div class="dv-card" style="width:880px;background:#1b1b1b;border:1px solid #303030">
+    <div class="th" style="grid-template-columns:22px 1fr 92px 104px 92px 78px"><span></span><span>Application</span><span>Status</span><span>Network</span><span>Uptime</span><span>Autostart</span></div>
+    <div style="display:grid;grid-template-columns:22px 1fr 92px 104px 92px 78px;align-items:center;gap:14px;padding:10px 16px 10px 13px;background:#242424;border-bottom:1px solid #2e2e2e;border-left:3px solid #ff8c2f">
+      <span style="font-size:11px;color:#9d9d9d">▾</span>
+      <div style="display:flex;align-items:center;gap:11px;min-width:0"><div style="width:26px;height:26px;border-radius:6px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 11px/24px ui-monospace,monospace;text-align:center;flex:none">▤</div><div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13.5px system-ui,sans-serif;color:#f0f0f0">Media</span><span style="font:400 11px system-ui,sans-serif;color:#8a8a8a">6 containers · 5 running</span></div></div>
+      <div style="display:flex;align-items:center;gap:4px"><span class="dot-g"></span><span class="dot-g"></span><span class="dot-g"></span><span class="dot-g"></span><span class="dot-g"></span><span class="dot-r"></span></div>
+      <span class="muted">bridge · host</span><span class="muted">—</span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">5 of 6</span>
+    </div>
+    <div style="padding-left:19px;border-left:3px solid rgba(255,140,47,.22)">
+      <div style="display:grid;grid-template-columns:1fr 92px 104px 92px 78px;align-items:center;gap:14px;padding:8px 16px 8px 0;border-bottom:1px solid #262626"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#2f3a46;color:#a9c8e6">PL</div><div style="display:flex;flex-direction:column;gap:1px"><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Plex</span><span style="font:400 10.5px ui-monospace,monospace;color:#7a7a7a">linuxserver/plex</span></div></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">host</span><span class="muted">12d 4h</span><span class="muted">on</span></div>
+      <div style="display:grid;grid-template-columns:1fr 92px 104px 92px 78px;align-items:center;gap:14px;padding:8px 16px 8px 0;border-bottom:1px solid #262626"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#2b3a33;color:#9fd7b6">SO</div><div style="display:flex;flex-direction:column;gap:1px"><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Sonarr</span><span style="font:400 10.5px ui-monospace,monospace;color:#7a7a7a">linuxserver/sonarr</span></div></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">bridge</span><span class="muted">12d 4h</span><span class="muted">on</span></div>
+      <div style="height:2px;background:#4a9fe0;margin-right:16px;border-radius:2px;box-shadow:0 0 6px rgba(74,159,224,.6)"></div>
+      <div style="display:grid;grid-template-columns:1fr 92px 104px 92px 78px;align-items:center;gap:14px;padding:8px 16px 8px 0;border-bottom:1px solid #262626;background:#20262c;outline:1px dashed #3f6f96;outline-offset:-2px"><div style="display:flex;align-items:center;gap:10px"><span class="grip" style="margin-left:-2px"></span><div class="ico" style="background:#3a3145;color:#cbb0e6">RA</div><div style="display:flex;flex-direction:column;gap:1px"><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Radarr</span><span style="font:400 10.5px ui-monospace,monospace;color:#6f9ec4">dragging — release to place</span></div></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">bridge</span><span class="muted">12d 4h</span><span class="muted">on</span></div>
+      <div style="display:grid;grid-template-columns:1fr 92px 104px 92px 78px;align-items:center;gap:14px;padding:8px 16px 8px 0;border-bottom:1px solid #262626"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#3d3226;color:#e0bb8c">QB</div><div style="display:flex;flex-direction:column;gap:1px"><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">qBittorrent</span><span style="font:400 10.5px ui-monospace,monospace;color:#7a7a7a">linuxserver/qbittorrent</span></div></div><span class="stat-r"><span class="dot-r"></span>stopped</span><span class="muted">bridge</span><span class="muted">—</span><span class="muted">off</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:22px 1fr;align-items:center;gap:14px;padding:10px 16px 10px 13px;background:#1e1e1e;border-bottom:1px solid #2e2e2e;border-left:3px solid #4a9fe0">
+      <span style="font-size:11px;color:#9d9d9d">▸</span>
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:26px;height:26px;border-radius:6px;background:#2b3540;border:1px solid #3d4c5c;color:#9dc2e0;font:600 11px/24px ui-monospace,monospace;text-align:center">▤</div><div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13.5px system-ui,sans-serif;color:#f0f0f0">Infrastructure</span><span style="font:400 11px system-ui,sans-serif;color:#8a8a8a">4 containers · all running</span></div></div>
+    </div>
+    <div style="padding:11px 16px;font:400 11.5px system-ui,sans-serif;color:#7a7a7a">Ungrouped · 3 containers</div>
+  </div>
+  <p class="dv-note">Closest to what you have, and the least risky change. The whole difference is a left rail, indentation on children, and a status dot-strip in the folder row. Drag-reorder shows a 2px insertion line rather than shuffling rows under the cursor.</p>
+</div>
+
+<div class="dv-opt" id="1b">
+  <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Card tiles — folders as a grid above a flat table</div>
+  <div class="dv-card" style="width:880px;background:#1b1b1b;border:1px solid #303030;padding:18px 18px 6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span class="kicker">Folders</span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Drag a card to reorder · drop a container onto a card to move it</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="background:#242424;border:1px solid #343434;border-top:2px solid #ff8c2f;border-radius:8px;padding:13px"><div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><div style="width:28px;height:28px;border-radius:7px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 13px system-ui,sans-serif;color:#f0f0f0">Media</span></div><div style="display:flex;gap:3px;margin-bottom:9px"><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#4a4a4a"></span></div><div style="font:400 11px system-ui,sans-serif;color:#8a8a8a">5 / 6 running</div></div>
+      <div style="background:#242424;border:1px solid #343434;border-top:2px solid #4a9fe0;border-radius:8px;padding:13px"><div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><div style="width:28px;height:28px;border-radius:7px;background:#2b3540;border:1px solid #3d4c5c;color:#9dc2e0;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 13px system-ui,sans-serif;color:#f0f0f0">Infra</span></div><div style="display:flex;gap:3px;margin-bottom:9px"><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span></div><div style="font:400 11px system-ui,sans-serif;color:#8a8a8a">4 / 4 running</div></div>
+      <div style="background:#242424;border:1px solid #343434;border-top:2px solid #7fbf6a;border-radius:8px;padding:13px"><div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><div style="width:28px;height:28px;border-radius:7px;background:#2b3a33;border:1px solid #3d5546;color:#9fd7b6;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 13px system-ui,sans-serif;color:#f0f0f0">Home</span></div><div style="display:flex;gap:3px;margin-bottom:9px"><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#e2564a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span><span style="flex:1;height:4px;border-radius:2px;background:#57b96a"></span></div><div style="font:400 11px system-ui,sans-serif;color:#d9938c">1 stopped</div></div>
+      <div style="border:1px dashed #3d3d3d;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:88px"><span style="font-size:17px;color:#6a6a6a;line-height:1">+</span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Add folder</span></div>
+    </div>
+    <div style="margin:16px -18px 0;border-top:1px solid #2e2e2e;padding:11px 18px" class="kicker">All containers</div>
+    <div style="margin:0 -18px;display:grid;grid-template-columns:1fr 96px 104px 92px;align-items:center;gap:14px;padding:8px 18px;border-bottom:1px solid #262626"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#2f3a46;color:#a9c8e6">PL</div><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Plex</span><span style="font:400 10px ui-monospace,monospace;color:#ffbe7a;background:#332a1f;border-radius:3px;padding:2px 6px">Media</span></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">host</span><span class="muted">12d 4h</span></div>
+    <div style="margin:0 -18px;display:grid;grid-template-columns:1fr 96px 104px 92px;align-items:center;gap:14px;padding:8px 18px;border-bottom:1px solid #262626"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#3d3226;color:#e0bb8c">NP</div><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Nginx Proxy Manager</span><span style="font:400 10px ui-monospace,monospace;color:#9dc2e0;background:#1f2932;border-radius:3px;padding:2px 6px">Infra</span></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">bridge</span><span class="muted">31d</span></div>
+    <div style="margin:0 -18px;display:grid;grid-template-columns:1fr 96px 104px 92px;align-items:center;gap:14px;padding:8px 18px"><div style="display:flex;align-items:center;gap:10px"><div class="ico" style="background:#333;color:#aaa">WT</div><span style="font:400 13px system-ui,sans-serif;color:#e6e6e6">Watchtower</span><span style="font:400 10px ui-monospace,monospace;color:#8a8a8a;border:1px dashed #444;border-radius:3px;padding:1px 6px">no folder</span></div><span class="stat-g"><span class="dot-g"></span>started</span><span class="muted">bridge</span><span class="muted">2d</span></div>
+  </div>
+  <p class="dv-note">Folders become a filter bar rather than a nesting structure. The table below stays flat, which keeps Unraid's column sorting intact — a real casualty of nested rows. Each container carries its folder as a tag; dragging a row onto a card reassigns it.</p>
+</div>
+
+<div class="dv-opt" id="1c">
+  <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Summary strip — a collapsed folder carries live aggregate stats</div>
+  <div class="dv-card" style="width:880px;background:#1b1b1b;border:1px solid #303030">
+    <div class="th" style="grid-template-columns:22px 1fr 150px 150px 96px"><span></span><span>Application</span><span>CPU</span><span>Memory</span><span>Actions</span></div>
+    <div style="display:grid;grid-template-columns:22px 1fr 150px 150px 96px;align-items:center;gap:16px;padding:12px 16px 12px 13px;background:#242424;border-bottom:1px solid #2e2e2e;border-left:3px solid #ff8c2f">
+      <span style="font-size:11px;color:#9d9d9d">▸</span>
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:28px;height:28px;border-radius:7px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 13.5px system-ui,sans-serif;color:#f0f0f0">Media</span><div style="display:flex;align-items:center;gap:8px"><span style="font:400 11px system-ui,sans-serif;color:#7fce93">5 running</span><span style="width:1px;height:9px;background:#444"></span><span style="font:400 11px system-ui,sans-serif;color:#d9938c">1 stopped</span><span style="width:1px;height:9px;background:#444"></span><span style="font:400 11px system-ui,sans-serif;color:#8a8a8a">2 updates</span></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">14.2<span style="font-size:10px;color:#8a8a8a">%</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:14%;height:100%;background:#ff8c2f"></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">6.1<span style="font-size:10px;color:#8a8a8a"> GiB</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:39%;height:100%;background:#4a9fe0"></div></div></div>
+      <div style="display:flex;gap:6px"><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9fd7b6;font:11px/22px system-ui;text-align:center">▶</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#d9938c;font:11px/22px system-ui;text-align:center">■</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9a9a9a;font:11px/22px system-ui;text-align:center">↻</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:22px 1fr 150px 150px 96px;align-items:center;gap:16px;padding:12px 16px 12px 13px;border-bottom:1px solid #2e2e2e;border-left:3px solid #4a9fe0">
+      <span style="font-size:11px;color:#9d9d9d">▸</span>
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:28px;height:28px;border-radius:7px;background:#2b3540;border:1px solid #3d4c5c;color:#9dc2e0;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 13.5px system-ui,sans-serif;color:#f0f0f0">Infrastructure</span><div style="display:flex;align-items:center;gap:8px"><span style="font:400 11px system-ui,sans-serif;color:#7fce93">4 running</span><span style="width:1px;height:9px;background:#444"></span><span style="font:400 11px system-ui,sans-serif;color:#8a8a8a">up to date</span></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">2.8<span style="font-size:10px;color:#8a8a8a">%</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:3%;height:100%;background:#ff8c2f"></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">840<span style="font-size:10px;color:#8a8a8a"> MiB</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:9%;height:100%;background:#4a9fe0"></div></div></div>
+      <div style="display:flex;gap:6px"><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9fd7b6;font:11px/22px system-ui;text-align:center">▶</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#d9938c;font:11px/22px system-ui;text-align:center">■</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9a9a9a;font:11px/22px system-ui;text-align:center">↻</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:22px 1fr 150px 150px 96px;align-items:center;gap:16px;padding:12px 16px 12px 13px;border-left:3px solid #7fbf6a">
+      <span style="font-size:11px;color:#9d9d9d">▸</span>
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:28px;height:28px;border-radius:7px;background:#2b3a33;border:1px solid #3d5546;color:#9fd7b6;font:600 12px/26px ui-monospace,monospace;text-align:center">▤</div><div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 13.5px system-ui,sans-serif;color:#f0f0f0">Home Automation</span><div style="display:flex;align-items:center;gap:8px"><span style="font:400 11px system-ui,sans-serif;color:#7fce93">3 running</span><span style="width:1px;height:9px;background:#444"></span><span style="font:400 11px system-ui,sans-serif;color:#d9938c">Zigbee2MQTT exited (1)</span></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">5.4<span style="font-size:10px;color:#8a8a8a">%</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:5%;height:100%;background:#ff8c2f"></div></div></div>
+      <div><div style="font:600 12.5px ui-monospace,monospace;color:#e6e6e6;margin-bottom:5px">1.2<span style="font-size:10px;color:#8a8a8a"> GiB</span></div><div style="height:5px;border-radius:3px;background:#333;overflow:hidden"><div style="width:13%;height:100%;background:#4a9fe0"></div></div></div>
+      <div style="display:flex;gap:6px"><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9fd7b6;font:11px/22px system-ui;text-align:center">▶</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#d9938c;font:11px/22px system-ui;text-align:center">■</span><span style="width:26px;height:24px;border-radius:5px;background:#2e2e2e;border:1px solid #3c3c3c;color:#9a9a9a;font:11px/22px system-ui;text-align:center">↻</span></div>
+    </div>
+  </div>
+  <p class="dv-note">The collapsed state earns its keep: aggregate CPU and memory summed from stats already being polled, a running/stopped/updates line, and bulk start/stop/restart for the group. Combine this with <a class="dv-oid" href="#1a">1a</a> rather than choosing between them.</p>
+</div>
+
+<div class="dv-opt" id="1d">
+  <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Organise mode — the drag-and-drop board, and the thing to build first</div>
+  <div class="dv-card" style="width:1120px;background:#1b1b1b;border:1px solid #303030">
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #2e2e2e;background:#161616">
+      <span style="font:600 14px system-ui,sans-serif;color:#f0f0f0">Organise containers</span>
+      <span style="font:400 11.5px system-ui,sans-serif;color:#8a8a8a">Drag between columns · changes save when you press Done</span>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:8px;background:#242424;border:1px solid #383838;border-radius:6px;padding:6px 10px;width:180px"><span style="color:#6f6f6f;font-size:11px">⌕</span><span style="font:400 12px system-ui,sans-serif;color:#6f6f6f">Filter</span></div>
+      <span class="btn-s">Cancel</span><span class="btn-p">Done</span>
+    </div>
+    <div style="display:grid;grid-template-columns:250px 1fr 1fr 1fr;gap:14px;padding:16px 18px;align-items:start">
+      <div class="col">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><span style="font:600 11.5px system-ui,sans-serif;color:#c9c9c9">Ungrouped</span><span style="font:600 10px ui-monospace,monospace;color:#8a8a8a;background:#2c2c2c;border-radius:9px;padding:2px 7px">7</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#333;color:#aaa">WT</div><span>Watchtower</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2f3a46;color:#a9c8e6">DZ</div><span>Dozzle</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3a3145;color:#cbb0e6">UK</div><span>Uptime Kuma</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2b3a33;color:#9fd7b6">VW</div><span>Vaultwarden</span></div>
+          <div class="chipc" style="opacity:.45"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3d3226;color:#e0bb8c">SY</div><span>Syncthing</span><span style="margin-left:auto;font:400 9.5px ui-monospace,monospace;color:#7a7a7a">compose</span></div>
+        </div>
+      </div>
+      <div class="col" style="border-top:2px solid #ff8c2f">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><span class="grip"></span><div style="width:22px;height:22px;border-radius:5px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 10px/20px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 12.5px system-ui,sans-serif;color:#f0f0f0">Media</span><span style="margin-left:auto;font:600 10px ui-monospace,monospace;color:#8a8a8a;background:#2c2c2c;border-radius:9px;padding:2px 7px">6</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2f3a46;color:#a9c8e6">PL</div><span>Plex</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2b3a33;color:#9fd7b6">SO</div><span>Sonarr</span></div>
+          <div style="height:34px;border-radius:7px;border:1px dashed #4a7fa8;background:rgba(74,159,224,.09)"></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3d3226;color:#e0bb8c">QB</div><span>qBittorrent</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3a3145;color:#cbb0e6">TA</div><span>Tautulli</span></div>
+        </div>
+      </div>
+      <div class="col" style="border-top:2px solid #4a9fe0">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><span class="grip"></span><div style="width:22px;height:22px;border-radius:5px;background:#2b3540;border:1px solid #3d4c5c;color:#9dc2e0;font:600 10px/20px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 12.5px system-ui,sans-serif;color:#f0f0f0">Infrastructure</span><span style="margin-left:auto;font:600 10px ui-monospace,monospace;color:#8a8a8a;background:#2c2c2c;border-radius:9px;padding:2px 7px">3</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3d3226;color:#e0bb8c">NP</div><span>Nginx Proxy Mgr</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2b3a33;color:#9fd7b6">AU</div><span>Authelia</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2f3a46;color:#a9c8e6">PO</div><span>Portainer</span></div>
+        </div>
+      </div>
+      <div class="col" style="border-top:2px solid #7fbf6a">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><span class="grip"></span><div style="width:22px;height:22px;border-radius:5px;background:#2b3a33;border:1px solid #3d5546;color:#9fd7b6;font:600 10px/20px ui-monospace,monospace;text-align:center">▤</div><span style="font:600 12.5px system-ui,sans-serif;color:#f0f0f0">Home Automation</span><span style="margin-left:auto;font:600 10px ui-monospace,monospace;color:#8a8a8a;background:#2c2c2c;border-radius:9px;padding:2px 7px">3</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#2f3a46;color:#a9c8e6">HA</div><span>Home Assistant</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3d3226;color:#e0bb8c">NR</div><span>Node-RED</span></div>
+          <div class="chipc"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3a3145;color:#cbb0e6">MQ</div><span>Mosquitto</span></div>
+        </div>
+        <div style="margin-top:10px;padding:9px;border:1px dashed #3d3d3d;border-radius:7px;text-align:center;font:400 11px system-ui,sans-serif;color:#6f6f6f">Drop containers here</div>
+      </div>
+    </div>
+    <div style="position:relative;height:0">
+      <div style="position:absolute;left:298px;top:-150px;display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:#2f2f2f;border:1px solid #4a7fa8;box-shadow:0 10px 24px rgba(0,0,0,.55);transform:rotate(-1.6deg);width:206px"><span class="grip"></span><div class="ico" style="width:20px;height:20px;line-height:20px;font-size:8.5px;background:#3a3145;color:#cbb0e6">RA</div><span style="font:400 12px system-ui,sans-serif;color:#f2f2f2">Radarr</span><span style="margin-left:auto;font:600 9.5px ui-monospace,monospace;color:#8fc3ea">→ Media</span></div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #2e2e2e;background:#161616;display:flex;align-items:center;gap:16px"><span style="font:400 11.5px system-ui,sans-serif;color:#8a8a8a">Shift-click to select a range · dimmed entries are Compose-managed and follow their project</span><div style="flex:1"></div><span style="font:400 11.5px system-ui,sans-serif;color:#8a8a8a">3 changes pending</span></div>
+  </div>
+  <p class="dv-note">Sorting thirty containers is a five-second job here and a five-minute job in a dialog. Reached from a single "Organise" button beside Add Folder; the Docker table underneath is untouched, so nothing breaks for people who never open it. jQuery UI sortable with connected lists does all of this.</p>
+</div>
+
+<div class="dv-opt" id="1e">
+  <div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Add / Edit folder dialog</div>
+  <div class="dv-card" style="width:560px;background:#1e1e1e;border:1px solid #343434">
+    <div style="display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #2e2e2e"><span style="font:600 14px system-ui,sans-serif;color:#f0f0f0">Edit folder</span><div style="flex:1"></div><span style="font-size:15px;color:#8a8a8a">×</span></div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:grid;grid-template-columns:64px 1fr;gap:16px;align-items:center">
+        <div style="width:64px;height:64px;border-radius:12px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 24px/62px ui-monospace,monospace;text-align:center">▤</div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font:400 12px system-ui,sans-serif;color:#9a9a9a">Folder icon</span><div style="display:flex;gap:8px"><span class="btn-s">Change icon</span><span style="font:400 12px system-ui,sans-serif;color:#9a9a9a;border:1px solid #3a3a3a;border-radius:6px;padding:7px 13px">Use first container's</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;align-items:center">
+        <label style="font:400 12.5px system-ui,sans-serif;color:#b4b4b4">Name</label>
+        <div style="background:#171717;border:1px solid #3a3a3a;border-radius:6px;padding:8px 11px;font:400 13px system-ui,sans-serif;color:#efefef">Media</div>
+        <label style="font:400 12.5px system-ui,sans-serif;color:#b4b4b4">Description</label>
+        <div style="background:#171717;border:1px solid #3a3a3a;border-radius:6px;padding:8px 11px;font:400 13px system-ui,sans-serif;color:#6f6f6f">Optional — shown under the folder name</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px"><span style="font:400 12.5px system-ui,sans-serif;color:#b4b4b4">Containers</span><span style="font:400 11px system-ui,sans-serif;color:#7d7d7d">Drag to reorder · 6 selected</span></div>
+        <div style="background:#171717;border:1px solid #3a3a3a;border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:6px">
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#2b2b2b;border:1px solid #3a3a3a;border-radius:15px;padding:4px 9px 4px 5px;font:400 11.5px system-ui,sans-serif;color:#e0e0e0"><span style="width:17px;height:17px;border-radius:4px;background:#2f3a46;color:#a9c8e6;font:600 7px/17px ui-monospace,monospace;text-align:center">PL</span>Plex<span style="color:#8a8a8a">×</span></span>
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#2b2b2b;border:1px solid #3a3a3a;border-radius:15px;padding:4px 9px 4px 5px;font:400 11.5px system-ui,sans-serif;color:#e0e0e0"><span style="width:17px;height:17px;border-radius:4px;background:#2b3a33;color:#9fd7b6;font:600 7px/17px ui-monospace,monospace;text-align:center">SO</span>Sonarr<span style="color:#8a8a8a">×</span></span>
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#2b2b2b;border:1px solid #3a3a3a;border-radius:15px;padding:4px 9px 4px 5px;font:400 11.5px system-ui,sans-serif;color:#e0e0e0"><span style="width:17px;height:17px;border-radius:4px;background:#3a3145;color:#cbb0e6;font:600 7px/17px ui-monospace,monospace;text-align:center">RA</span>Radarr<span style="color:#8a8a8a">×</span></span>
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#2b2b2b;border:1px solid #3a3a3a;border-radius:15px;padding:4px 9px 4px 5px;font:400 11.5px system-ui,sans-serif;color:#e0e0e0"><span style="width:17px;height:17px;border-radius:4px;background:#3d3226;color:#e0bb8c;font:600 7px/17px ui-monospace,monospace;text-align:center">QB</span>qBittorrent<span style="color:#8a8a8a">×</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;border:1px dashed #444;border-radius:15px;padding:4px 11px;font:400 11.5px system-ui,sans-serif;color:#8a8a8a">+ Add container</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;border-top:1px solid #2e2e2e;padding-top:14px">
+        <div style="display:flex;align-items:center;gap:14px;padding:9px 0"><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e0e0e0">Expanded by default</div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d;margin-top:2px">Folder opens automatically on page load</div></div><span class="tog-on"><span class="knob-r"></span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:9px 0"><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e0e0e0">Hide when empty</div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d;margin-top:2px">Folder disappears if all its containers are removed</div></div><span class="tog-off"><span class="knob-l"></span></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:9px 0"><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e0e0e0">Show status summary when collapsed</div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d;margin-top:2px">Running count, CPU and memory — see <a class="dv-oid" href="#1c" style="text-decoration:none">1c</a></div></div><span class="tog-on"><span class="knob-r"></span></span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid #2e2e2e;background:#191919"><span style="font:400 12px system-ui,sans-serif;color:#c96a60">Delete folder</span><div style="flex:1"></div><span class="btn-s">Cancel</span><span class="btn-p">Save</span></div>
+  </div>
+  <p class="dv-note">Three changes carry the weight: the icon is a picture you click, containers are removable chips instead of a multiselect, and every toggle has a one-line explanation. The destructive action sits far left, away from Save.</p>
+</div>
+
+<div class="dv-opt" id="1f">
+  <div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Icon picker</div>
+  <div class="dv-card" style="width:600px;background:#1e1e1e;border:1px solid #343434">
+    <div style="display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #2e2e2e"><span style="font:600 14px system-ui,sans-serif;color:#f0f0f0">Choose an icon</span><div style="flex:1"></div><span style="font-size:15px;color:#8a8a8a">×</span></div>
+    <div style="display:flex;gap:22px;padding:14px 20px 0;border-bottom:1px solid #2e2e2e"><span style="font:600 12px system-ui,sans-serif;color:#f0f0f0;padding-bottom:10px;border-bottom:2px solid #ff8c2f">From this folder</span><span style="font:400 12px system-ui,sans-serif;color:#8a8a8a;padding-bottom:10px">Icon library</span><span style="font:400 12px system-ui,sans-serif;color:#8a8a8a;padding-bottom:10px">Upload</span><span style="font:400 12px system-ui,sans-serif;color:#8a8a8a;padding-bottom:10px">URL</span></div>
+    <div style="padding:16px 20px">
+      <div style="display:flex;align-items:center;gap:8px;background:#171717;border:1px solid #3a3a3a;border-radius:6px;padding:8px 11px;margin-bottom:16px"><span style="color:#6f6f6f;font-size:11px">⌕</span><span style="font:400 12.5px system-ui,sans-serif;color:#6f6f6f">Search icons</span></div>
+      <div class="kicker" style="margin-bottom:10px">Containers in this folder</div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:9px;margin-bottom:20px">
+        <div style="aspect-ratio:1;border-radius:9px;background:#2f3a46;border:2px solid #ff8c2f;color:#a9c8e6;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">PL</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2b3a33;border:1px solid #3a3a3a;color:#9fd7b6;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">SO</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#3a3145;border:1px solid #3a3a3a;color:#cbb0e6;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">RA</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#3d3226;border:1px solid #3a3a3a;color:#e0bb8c;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">QB</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2f3a46;border:1px solid #3a3a3a;color:#a9c8e6;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">PR</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#3a3145;border:1px solid #3a3a3a;color:#cbb0e6;font:600 11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center">TA</div>
+      </div>
+      <div class="kicker" style="margin-bottom:10px">Generic folder marks</div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:9px;margin-bottom:20px">
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">▤</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">▣</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">◆</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">●</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">▲</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">★</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">⬢</div>
+        <div style="aspect-ratio:1;border-radius:9px;background:#2a2a2a;border:1px solid #3a3a3a;color:#c9c9c9;font-size:17px;display:flex;align-items:center;justify-content:center">◐</div>
+      </div>
+      <div class="kicker" style="margin-bottom:10px">Tint</div>
+      <div style="display:flex;gap:8px"><span style="width:26px;height:26px;border-radius:7px;background:#ff8c2f;outline:2px solid #ff8c2f;outline-offset:2px"></span><span style="width:26px;height:26px;border-radius:7px;background:#4a9fe0"></span><span style="width:26px;height:26px;border-radius:7px;background:#7fbf6a"></span><span style="width:26px;height:26px;border-radius:7px;background:#c96a9e"></span><span style="width:26px;height:26px;border-radius:7px;background:#d9b34a"></span><span style="width:26px;height:26px;border-radius:7px;background:#8a8a8a"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid #2e2e2e;background:#191919"><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Container images already on the server work offline</span><div style="flex:1"></div><span class="btn-p">Use icon</span></div>
+  </div>
+  <p class="dv-note">The first tab is the shortcut that matters: most people want the Plex mark on the Media folder, and that image is already on disk. Library, upload and URL stay available behind it.</p>
+</div>
+
+<div class="dv-opt" id="1g">
+  <div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Settings — tabbed, on Unraid's label/control grid</div>
+  <div class="dv-card" style="width:960px;background:#1b1b1b;border:1px solid #303030">
+    <div style="padding:18px 24px 0;border-bottom:1px solid #2e2e2e">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:16px"><span style="font:600 17px system-ui,sans-serif;color:#f0f0f0">FolderView2</span><span style="font:400 11px ui-monospace,monospace;color:#7d7d7d">2026.08.07</span><div style="flex:1"></div><span style="font:400 12px system-ui,sans-serif;color:#9a9a9a">Settings › FolderView2</span></div>
+      <div style="display:flex;gap:26px"><span style="font:600 12.5px system-ui,sans-serif;color:#f0f0f0;padding-bottom:11px;border-bottom:2px solid #ff8c2f">Appearance</span><span style="font:400 12.5px system-ui,sans-serif;color:#8a8a8a;padding-bottom:11px">Folders</span><span style="font:400 12.5px system-ui,sans-serif;color:#8a8a8a;padding-bottom:11px">Import &amp; export</span><span style="font:400 12.5px system-ui,sans-serif;color:#8a8a8a;padding-bottom:11px">Advanced</span></div>
+    </div>
+    <div style="padding:24px 24px 8px;max-width:760px">
+      <div class="kicker" style="margin-bottom:4px">Where folders appear</div>
+      <div style="display:grid;grid-template-columns:190px 1fr;gap:0 24px;align-items:start">
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:16px 0">Enable on</label>
+        <div style="padding:9px 0"><div style="display:flex;gap:8px"><span style="font:400 12px system-ui,sans-serif;color:#1a1a1a;background:#ff8c2f;border-radius:6px;padding:7px 15px">Docker</span><span class="btn-s">VMs</span><span class="btn-s">Dashboard</span></div><div style="font:400 11.5px/1.5 system-ui,sans-serif;color:#7d7d7d;margin-top:8px">Adds the Add Folder button to the selected tabs.</div></div>
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:16px 0">Folder row style</label>
+        <div style="padding:9px 0"><div style="background:#171717;border:1px solid #3a3a3a;border-radius:6px;padding:8px 11px;font:400 13px system-ui,sans-serif;color:#efefef;display:flex;align-items:center;width:280px">Grouped section<span style="margin-left:auto;color:#7d7d7d;font-size:10px">▾</span></div><div style="font:400 11.5px/1.5 system-ui,sans-serif;color:#7d7d7d;margin-top:8px">Grouped section · Card tiles · Summary strip</div></div>
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:11px 0">Folder accent</label>
+        <div style="padding:11px 0;display:flex;gap:8px"><span style="width:24px;height:24px;border-radius:6px;background:#ff8c2f;outline:2px solid #ff8c2f;outline-offset:2px"></span><span style="width:24px;height:24px;border-radius:6px;background:#4a9fe0"></span><span style="width:24px;height:24px;border-radius:6px;background:#7fbf6a"></span><span style="width:24px;height:24px;border-radius:6px;background:#8a8a8a"></span></div>
+      </div>
+      <div style="height:1px;background:#2b2b2b;margin:18px 0"></div>
+      <div class="kicker" style="margin-bottom:4px">Behaviour</div>
+      <div style="display:grid;grid-template-columns:190px 1fr;gap:0 24px;align-items:center">
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:11px 0">Remember open folders</label>
+        <div style="padding:11px 0;display:flex;align-items:center;gap:12px"><span class="tog-on"><span class="knob-r"></span></span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Per browser, survives reload</span></div>
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:11px 0">Animate expand</label>
+        <div style="padding:11px 0;display:flex;align-items:center;gap:12px"><span class="tog-off"><span class="knob-l"></span></span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Off is faster on long container lists</span></div>
+        <label style="font:400 13px system-ui,sans-serif;color:#c9c9c9;padding:11px 0">Folder actions</label>
+        <div style="padding:11px 0;display:flex;align-items:center;gap:12px"><span class="tog-on"><span class="knob-r"></span></span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Start, stop and restart every container in a folder at once</span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 24px;border-top:1px solid #2e2e2e;background:#171717"><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d">Unsaved changes</span><div style="flex:1"></div><span class="btn-s">Reset to defaults</span><span class="btn-p">Apply</span></div>
+  </div>
+  <p class="dv-note">Four tabs, a 190px label column, section kickers, and one line of help under anything ambiguous. Sticky footer holds Apply so it is reachable without scrolling. This is the cheapest of the nine to implement and probably the most visible.</p>
+</div>
+
+<div class="dv-opt" id="1h">
+  <div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>First run — a suggestion, not an empty box</div>
+  <div class="dv-card" style="width:600px;background:#1b1b1b;border:1px solid #303030;padding:28px 26px">
+    <div style="width:44px;height:44px;border-radius:11px;border:1px dashed #4a4a4a;color:#7d7d7d;font:600 18px/42px ui-monospace,monospace;text-align:center;margin-bottom:16px">▤</div>
+    <div style="font:600 16px system-ui,sans-serif;color:#f0f0f0;margin-bottom:7px">No folders yet</div>
+    <p style="margin:0 0 20px;font:400 13px/1.6 system-ui,sans-serif;color:#8f8f8f;max-width:420px">You have 14 containers. FolderView found three groupings based on Compose project and image publisher — start from one, or build your own.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid #343434;border-radius:8px;background:#222"><div style="width:24px;height:24px;border-radius:6px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e6e6e6">Media</div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d">Plex, Sonarr, Radarr, qBittorrent, Tautulli, Prowlarr</div></div><span style="font:400 11.5px system-ui,sans-serif;color:#c9c9c9;border:1px solid #3a3a3a;border-radius:6px;padding:5px 11px">Create</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid #343434;border-radius:8px;background:#222"><div style="width:24px;height:24px;border-radius:6px;background:#2b3540;border:1px solid #3d4c5c;color:#9dc2e0;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e6e6e6">Infrastructure</div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d">Nginx Proxy Manager, Authelia, Portainer</div></div><span style="font:400 11.5px system-ui,sans-serif;color:#c9c9c9;border:1px solid #3a3a3a;border-radius:6px;padding:5px 11px">Create</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid #343434;border-radius:8px;background:#222"><div style="width:24px;height:24px;border-radius:6px;background:#2b3a33;border:1px solid #3d5546;color:#9fd7b6;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:400 12.5px system-ui,sans-serif;color:#e6e6e6">home-assistant <span style="font:400 10px ui-monospace,monospace;color:#7d7d7d">compose project</span></div><div style="font:400 11px system-ui,sans-serif;color:#7d7d7d">Home Assistant, Node-RED, Mosquitto, Zigbee2MQTT</div></div><span style="font:400 11.5px system-ui,sans-serif;color:#c9c9c9;border:1px solid #3a3a3a;border-radius:6px;padding:5px 11px">Create</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center"><span class="btn-p">Create all three</span><span class="btn-s">Start empty</span><span style="font:400 11.5px system-ui,sans-serif;color:#7d7d7d;margin-left:auto">Import a backup</span></div>
+  </div>
+  <p class="dv-note">Compose project labels and image namespaces are already on every container, so the plugin can propose real groupings for free. It turns first run from a chore into one click, and it is the natural place to surface Import for people migrating from FolderView 1.</p>
+</div>
+
+<div class="dv-opt" id="1i">
+  <div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Theme matrix — the same folder row across all four Unraid themes</div>
+  <div class="dv-card" style="width:880px;background:#fff;border:1px solid #ddd;padding:0">
+    <div style="display:grid;grid-template-columns:1fr 1fr">
+      <div style="background:#fff;border-right:1px solid #e2e2e2;border-bottom:1px solid #e2e2e2;padding:16px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a;margin-bottom:12px">White</div><div style="display:flex;align-items:center;gap:11px;padding:9px 12px;background:#f4f4f4;border:1px solid #e0e0e0;border-left:3px solid #e08a2c;border-radius:4px"><span style="font-size:10px;color:#8a8a8a">▾</span><div style="width:24px;height:24px;border-radius:6px;background:#f6e6d2;border:1px solid #e3c69e;color:#b96a12;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:600 12.5px system-ui,sans-serif;color:#1c1c1c">Media</div><div style="font:400 10.5px system-ui,sans-serif;color:#7a7a7a">6 containers · 5 running</div></div><div style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#c2402f"></span></div></div></div>
+      <div style="background:#1b1b1b;border-bottom:1px solid #2e2e2e;padding:16px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7d7d7d;margin-bottom:12px">Black</div><div style="display:flex;align-items:center;gap:11px;padding:9px 12px;background:#242424;border:1px solid #333;border-left:3px solid #ff8c2f;border-radius:4px"><span style="font-size:10px;color:#9d9d9d">▾</span><div style="width:24px;height:24px;border-radius:6px;background:#3b3226;border:1px solid #56462f;color:#ffbe7a;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:600 12.5px system-ui,sans-serif;color:#f0f0f0">Media</div><div style="font:400 10.5px system-ui,sans-serif;color:#8a8a8a">6 containers · 5 running</div></div><div style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#57b96a"></span><span style="width:5px;height:5px;border-radius:50%;background:#57b96a"></span><span style="width:5px;height:5px;border-radius:50%;background:#57b96a"></span><span style="width:5px;height:5px;border-radius:50%;background:#57b96a"></span><span style="width:5px;height:5px;border-radius:50%;background:#57b96a"></span><span style="width:5px;height:5px;border-radius:50%;background:#e2564a"></span></div></div></div>
+      <div style="background:#eceff1;border-right:1px solid #dbdfe2;padding:16px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7b858c;margin-bottom:12px">Gray</div><div style="display:flex;align-items:center;gap:11px;padding:9px 12px;background:#e2e6e9;border:1px solid #cdd3d7;border-left:3px solid #d97c24;border-radius:4px"><span style="font-size:10px;color:#7b858c">▾</span><div style="width:24px;height:24px;border-radius:6px;background:#f0e3d3;border:1px solid #d9bd9b;color:#a85f10;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:600 12.5px system-ui,sans-serif;color:#232a2e">Media</div><div style="font:400 10.5px system-ui,sans-serif;color:#6c757b">6 containers · 5 running</div></div><div style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#3d9950"></span><span style="width:5px;height:5px;border-radius:50%;background:#c2402f"></span></div></div></div>
+      <div style="background:#1c2733;padding:16px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7d94a8;margin-bottom:12px">Azure</div><div style="display:flex;align-items:center;gap:11px;padding:9px 12px;background:#25333f;border:1px solid #34434f;border-left:3px solid #ff9c46;border-radius:4px"><span style="font-size:10px;color:#9db2c3">▾</span><div style="width:24px;height:24px;border-radius:6px;background:#3a3527;border:1px solid #574d33;color:#ffc98e;font:600 10px/22px ui-monospace,monospace;text-align:center">▤</div><div style="flex:1"><div style="font:600 12.5px system-ui,sans-serif;color:#eef4f8">Media</div><div style="font:400 10.5px system-ui,sans-serif;color:#93a8b8">6 containers · 5 running</div></div><div style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#5fc47a"></span><span style="width:5px;height:5px;border-radius:50%;background:#5fc47a"></span><span style="width:5px;height:5px;border-radius:50%;background:#5fc47a"></span><span style="width:5px;height:5px;border-radius:50%;background:#5fc47a"></span><span style="width:5px;height:5px;border-radius:50%;background:#5fc47a"></span><span style="width:5px;height:5px;border-radius:50%;background:#e86a5c"></span></div></div></div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #e2e2e2;background:#fafafa;display:flex;gap:26px;flex-wrap:wrap">
+      <div style="min-width:170px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a;margin-bottom:6px">Surface</div><div style="font:400 11.5px/1.5 ui-monospace,monospace;color:#555">from table row bg</div></div>
+      <div style="min-width:170px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a;margin-bottom:6px">Text</div><div style="font:400 11.5px/1.5 ui-monospace,monospace;color:#555">from page color</div></div>
+      <div style="min-width:170px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a;margin-bottom:6px">Border</div><div style="font:400 11.5px/1.5 ui-monospace,monospace;color:#555">text at 14% alpha</div></div>
+      <div style="min-width:170px"><div style="font:600 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a;margin-bottom:6px">Accent</div><div style="font:400 11.5px/1.5 ui-monospace,monospace;color:#555">--fv-accent, only var</div></div>
+    </div>
+  </div>
+  <p class="dv-note">Only four values vary, and three of them are read from the page rather than declared. Derive surfaces with <code style="font:11px ui-monospace,monospace;background:#232323;color:#d8c7ae;padding:1px 4px;border-radius:3px">color-mix()</code> against the inherited text colour and custom themes stop breaking — which is the caveat currently sitting on your Community Apps listing.</p>
+</div>
+
+</div>
+<p class="dv-next">Try next: "build <a class="dv-oid" href="#1d">1d</a> as a clickable prototype" · "combine <a class="dv-oid" href="#1a">1a</a> and <a class="dv-oid" href="#1c">1c</a> into one folder row" · "show <a class="dv-oid" href="#1g">1g</a>'s other three tabs"</p>
+</section>
+</div>
+<script>
+function showPage(which){
+  document.getElementById('page-report').classList.toggle('on', which==='report');
+  document.getElementById('page-review').classList.toggle('on', which==='review');
+  document.getElementById('t-report').setAttribute('aria-selected', which==='report');
+  document.getElementById('t-review').setAttribute('aria-selected', which==='review');
+  if(location.hash!=='#'+which) history.replaceState(null,'','#'+which);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('#page-report a[href$=".dc.html"]').forEach(function(el){
+  el.setAttribute('href','#review');
+  el.addEventListener('click',function(e){e.preventDefault();showPage('review');});
+});
+if(location.hash==='#review') showPage('review');
+</script>
+</body>
+</html>

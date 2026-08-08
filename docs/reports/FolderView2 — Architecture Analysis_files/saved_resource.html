@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<!-- saved from url=(0253)https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/?__frame_t=fzmtnnepPyysQxKUNxrk-Cxf.ef710bc8-8009-4c42-a097-a3bf05bea6b6.8858bb32-5a74-4ddc-9925-6765cc499f53.1786161195&__frame_v=manifest.e62839488bca1ed4.json -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- frame-runtime --><!--<base href="/_f/1786157590-7fd7/">--><base href="."><script>window.__FRAME_PREAMBLE={"capabilities":{"comments":"comments.BaoaqR_K.js","db":"db.CeV_J5G-.js","downloads":"downloads.BXsoAvg9.js","mcp":"mcp.CYSdpjo0.js","permissions":"permissions.DdITF2Mk.js","sample":"sample.DpdXn9di.js","self":"self.BN4be5De.js","user":"user.Cr_h1ETf.js"},"transforms":"_transforms.VaITkagF.js","comments":"_comments.CNSvmFji.js","translate":"_translate.BOzFH2D9.js"}</script><script>(function(){"use strict";var ne=["light","dark","system"];function oe(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function W(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function se(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const n=t.theme;return typeof n=="string"&&ne.includes(n)}function ie(e){try{typeof reportError=="function"?reportError(e):setTimeout(()=>{throw e},0)}catch{}}var Y=Object.freeze(Object.assign(Object.create(null),{user:Object.freeze(Object.assign(Object.create(null),{id:null,isOwner:!1,canEdit:!1,name:null,avatarUrl:null,email:null}))})),ae={sample:"sample"};function x(){const e=new Uint8Array(20);try{crypto.getRandomValues(e)}catch{for(let n=0;n<e.length;n++)e[n]=Math.floor(Math.random()*256)}let t="";for(const n of e)t+=(n%36).toString(36);return t}function ce(e,t){const n=r=>{const o={path:r},i=r.split("/");return{id:i[i.length-1],path:r,get:()=>t("get",[o]),set:g=>t("set",[o,g]),update:g=>t("update",[o,g]),delete:()=>t("delete",[o]),acquire:g=>t("acquire",[o,g]),onSnapshot:(g,y)=>t("subscribe",[o,g,y]),collection:g=>a(r+"/"+String(g))}},u=r=>({where:(o,i,g)=>u({...r,where:[...r.where??[],{f:String(o),op:String(i),v:g}]}),orderBy:(o,i)=>u({...r,orderBy:{f:String(o),dir:i===void 0?"asc":String(i)}}),limit:o=>u({...r,limit:Number(o)}),get:()=>t("query",[r]),onSnapshot:(o,i)=>t("subscribe",[r,o,i])}),a=r=>({...u({collection:r}),path:r,doc:o=>n(r+"/"+(o===void 0?x():String(o))),add:o=>{const i=n(r+"/"+x());return Promise.resolve(i.set(o)).then(()=>i)}});e.doc=r=>n(String(r)),e.collection=r=>a(String(r))}function J(e){if(window===top||e.type==="auxclick"&&e.button!==1)return;const t=e.composedPath?e.composedPath():[e.target];let n=null;for(let o=0;o<t.length;o++){const i=t[o];if(i&&i.matches&&i.matches("a[href],area[href]")){n=i;break}}if(!n&&e.target&&e.target.closest&&(n=e.target.closest("a[href],area[href]")),!n)return;const u=n.getAttribute("href");if(!u)return;let a,r;try{a=new URL(u,document.baseURI),r=new URL(document.baseURI).origin}catch{return}if((a.protocol==="http:"||a.protocol==="https:")&&a.origin!==r){e.preventDefault();const o=(n.getAttribute("target")??document.querySelector("base[target]")?.getAttribute("target")??"").toLowerCase(),i=e.type==="auxclick"||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||!["","_self","_top","_parent"].includes(o);parent.postMessage({__frame_nav:!0,url:a.href,newTab:i},"*")}}var G={};function I(e){if(window===top)return;const t=Date.now();t-(G[e]||0)<500||(G[e]=t,parent.postMessage({__frame_engaged:!0,kind:e},"*"))}var le=2e3,V=["wheel","touchstart","touchmove","keydown","pointerdown"],X=0;function ue(e){e.isTrusted&&(X=Date.now())}function fe(){addEventListener("click",J,!0),addEventListener("auxclick",J,!0)}function de(){for(let e=0;e<V.length;e++)addEventListener(V[e],ue,{capture:!0,passive:!0});addEventListener("scroll",e=>{e.isTrusted&&Date.now()-X<le&&I("scroll")},{capture:!0,passive:!0}),addEventListener("pointermove",e=>{e.isTrusted&&I("pointer")},{capture:!0,passive:!0}),addEventListener("click",e=>{e.isTrusted&&I("click")},{capture:!0,passive:!0})}var q="__frame_scroll",me=150,pe=310,ge=160,he=3e4;function ve(){let e=0,t=!1,n=!1,u=!1,a=0,r=null;const o=d=>{try{sessionStorage.setItem(q,JSON.stringify({y:d}))}catch{}},i=()=>{if(clearTimeout(e),r===null)return;const d=r;r=null,o(d)},g=()=>{if(t){t=!1;return}n=!0,r=scrollY,clearTimeout(e),e=setTimeout(i,me)};try{addEventListener("scroll",g,{passive:!0}),addEventListener("pagehide",i)}catch{}const y=()=>{let d;try{d=sessionStorage.getItem(q)}catch{return null}if(d===null)return null;let l;try{l=JSON.parse(d)}catch{l=null}const p=l?.y;if(!(typeof p=="number"&&Number.isFinite(p)&&p>=0)){try{sessionStorage.removeItem(q)}catch{}return null}return p};let c=!1;const f=d=>{try{const l=scrollY;scrollTo({top:d,left:0,behavior:"instant"}),a=d,u=!0,clearTimeout(e),r=null,o(d);const p=scrollY;p!==l&&(t=!0),p!==d&&!c&&(c=!0,addEventListener("load",()=>{try{if(scrollY===p){const v=y();f(v!==null?v:a)}}catch{}},{once:!0}))}catch{}},m=()=>{try{return!!location.hash}catch{return!0}};let h=!1;const _=()=>{try{if(h||innerWidth>pe||innerHeight>ge)return;h=!0;const d=Date.now(),l=()=>{try{removeEventListener("resize",l)}catch{}if(Date.now()-d>he||n||m())return;const p=y();f(p!==null?p:a)};addEventListener("resize",l)}catch{}};let w=!1,S=!1;return{restore(){if(w||(w=!0,m()))return;const d=y();d!==null&&(f(d),_())},promoted(){if(S||(S=!0,m()))return;const d=y();d!==null?(f(d),_()):u&&f(a)}}}function _e(e,t,n){const u=[...t.values()].filter(a=>a.targets.some(r=>r.startsWith(e+".")));return{wrap(a,r){const o=`${e}.${a}`,i=u.filter(g=>g.targets.includes(o));return i.length===0?(...g)=>{try{return r(...g)}catch(y){return Promise.reject(y)}}:(...g)=>{let y=g;for(const f of i){const m=f.module.parameters;if(m)try{y=m(y)}catch{return Promise.reject({code:"transform_error",id:f.id,scope:e,message:"parameters transform failed"})}}let c;try{c=r(...y)}catch(f){c=Promise.reject(f)}return c.then(f=>{for(let m=i.length-1;m>=0;m--){const h=i[m],_=h.module.returns;if(_)try{f=_(f)}catch{return n({id:h.id,scope:e,leg:"returns"}),f}}return f},f=>{for(let m=i.length-1;m>=0;m--){const h=i[m],_=h.module.throws;if(_)try{f=_(f)}catch{return n({id:h.id,scope:e,leg:"throws"}),Promise.reject(f)}}return Promise.reject(f)})}}}}function ye(e,t,n,u=()=>{}){const a=new Set(e.changes??[]),r=new Map;for(const o of a){const i=t[o];i&&r.set(o,i)}return{contract:e.contract,changes:a,flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:r,shellOrigin:n.shellOrigin,mount:n.mount,pipe:o=>_e(o,r,u)}}var Ae="modulepreload",Re=function(e){return"/"+e},je={},be=function(t,n,u){let a=Promise.resolve();function r(o){const i=new Event("vite:preloadError",{cancelable:!0});if(i.payload=o,window.dispatchEvent(i),!i.defaultPrevented)throw o}return a.then(o=>{for(const i of o||[])i.status==="rejected"&&r(i.reason);return t().catch(r)})};(function(){const e=Object.defineProperty,t=globalThis,n=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let u=0;for(let a=0;a<n.length;a++){const r=n[a];try{e(t,r,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[r]}catch{}try{e(t,r,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[r]=="function"&&u++}if(u&&window!==top)try{parent.postMessage({__frame_rtc_lockdown_failed:u},"*")}catch{}})();var Ee=1e4,we=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function Q(e){for(const t of we)if(t.endsWith(":*"))try{const n=new URL(e);if(`${n.protocol}//${n.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var k=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),D=window.__FRAME_PREAMBLE?.transforms,z=window.__FRAME_PREAMBLE?.comments,B=window.__FRAME_PREAMBLE?.translate,C=/^[\w.-]+\.js$/,Se=/^[a-z][a-z0-9_-]{0,63}$/,Z=null,M=null;function $(e,t,n){try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var F=!1;function ee(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,F=!0):F&&(delete t.dataset.theme,t.style.colorScheme="",F=!1)}var te=256,P=Object.assign(Object.create(null),{mcp:Object.assign(Object.create(null),{watchTool:{handlerArg:3}}),db:Object.assign(Object.create(null),{subscribe:{handlerArg:1,errArg:2}})}),L=new Map;function re(e,t){const n=L.get(e);if(!n)return;const u=Object.assign(Object.create(null),t);Object.assign(n.impl,u),n.impl.__settled=()=>Promise.reject({code:"capability_removed",message:`${e}: method not in this runtime`});const a=n.queue;n.queue=[];for(const r of a){const o=u[r.method];if(o)if(P[e]?.[r.method])try{r.resolve(o(...r.args))}catch{T(r,P[e][r.method],{code:"transform_error",message:`${e}.${r.method} rejected its arguments`})}else o(...r.args).then(r.resolve,r.reject);else{const i={code:"capability_removed",message:`${e}.${r.method} is not in this runtime`},g=P[e]?.[r.method];if(g){T(r,g,i);continue}r.reject(i)}}}function Oe(e,t){const n=L.get(e);if(!n)return;n.impl.__settled=()=>Promise.reject(t);const u=n.queue;n.queue=[];for(const a of u){const r=P[e]?.[a.method];if(r){T(a,r,t);continue}a.reject(t)}}function N(e,t){const n=Y[e];if(!n){Oe(e,t);return}re(e,Object.fromEntries(Object.entries(n).map(([u,a])=>[u,()=>Promise.resolve(a)])))}function T(e,t,n){if(e.syncState?.dead)return;const u=t.errArg===void 0?void 0:e.args[t.errArg],a=t.errArg===void 0?e.args[t.handlerArg]:u;typeof a=="function"&&queueMicrotask(()=>{if(!e.syncState?.dead)try{a(t.errArg===void 0?{type:"error",error:n}:n)}catch(r){ie(r)}})}var H=Object.getOwnPropertyDescriptor(window,"claude");if(window!==top&&!(H&&H.writable===!1)){fe(),de();let e=null;try{e=ve()}catch{}const t=H?.value??{};$(window,"claude",t);const n=c=>{const f={impl:Object.create(null),queue:[]};L.set(c,f);const m=f.impl,h=d=>({code:"queue_overflow",message:`${c}.${d}: pre-init call queue is full`}),_=(d,l)=>{if(f.queue.length>=te){const p=Y[c];return p&&d in p?Promise.resolve(p[d]):Promise.reject(h(d))}return new Promise((p,v)=>{f.queue.push({method:d,args:l,resolve:p,reject:v})})},w=ae[c],S=new Proxy(w===void 0?m:(()=>{}),{apply:(d,l,p)=>{const v=w,E=m[v]??m.__settled;return E?E(...p):_(v,p)},get:(d,l)=>{if(typeof l!="string"||l==="then"||l==="toJSON"||l==="valueOf")return;if(l==="toString")return Object.prototype.toString;if(w!==void 0&&(l==="call"||l==="apply"||l==="bind"))return Function.prototype[l];const p=P[c]?.[l];return p?(...v)=>{if(typeof v[p.handlerArg]!="function")throw new TypeError(`${c}.${l} requires a handler function`);const E=m[l];if(E)return E(...v);if(m.__settled){const b={dead:!1},U={args:[...v],syncState:b};return m.__settled().catch(s=>T(U,p,s)),()=>{b.dead=!0}}if(f.queue.length>=te){const b={dead:!1};return T({args:[...v],syncState:b},p,h(l)),()=>{b.dead=!0}}let A=null;const R={dead:!1};return f.queue.push({method:l,args:v,resolve:b=>{A=typeof b=="function"?b:null,R.dead&&A?.()},reject:()=>{},syncState:R}),()=>{R.dead=!0,A?.()}}:(...v)=>{const E=m[l]??m.__settled;return E?E(...v):_(l,v)}},set:()=>!1});c==="db"&&ce(m,(d,l)=>S[d](...l)),$(t,c,S)};for(const c of Object.keys(k)){if(t[c]!==void 0){$(t,c,t[c]);continue}n(c)}let u=null,a=null,r=0;const o=c=>{c.source!==parent||!Q(c.origin)||oe(c.data)&&(u=c.data.__frame_init,M=c.origin,removeEventListener("message",o),clearTimeout(r),a?.())};addEventListener("message",o),parent.postMessage({__frame_connect:!0},"*");const i=new Promise(c=>{a=c,r=setTimeout(()=>{removeEventListener("message",o),c()},Ee)}),g=document.readyState==="loading"?new Promise(c=>document.addEventListener("DOMContentLoaded",()=>c(),{once:!0})):Promise.resolve();g.then(()=>{try{e?.restore()}catch{}});const y=c=>{if(!(c.source!==parent||!Q(c.origin))&&W(c.data)){removeEventListener("message",y);try{e?.promoted()}catch{}}};addEventListener("message",y),i.then(async()=>{if(!u||!M){for(const s of L.keys())N(s,{code:"not_granted",message:"frame initialization did not arrive - capability unavailable"});return}ee(u.theme);const c=M;let f=!1,m=!1;addEventListener("message",s=>{if(s.source!==parent||s.origin!==c)return;se(s.data)&&ee(s.data.__frame_theme.theme);const O=s.data?.__fc_mode;O&&typeof O=="object"&&!f&&z&&C.test(z)&&(f=!0,h(z).then(K=>K.install?.(c,O.on===!0)).catch(()=>{}));const j=s.data?.__ft_cmd;j&&typeof j=="object"&&!m&&B&&C.test(B)&&(m=!0,h(B).then(K=>K.install?.(c,j)).catch(()=>{}))});const h=s=>be(()=>import("/_runtime/"+s),void 0),_=Object.keys(u.capabilities??{});for(const s of _)Object.hasOwn(k,s)||Se.test(s)&&t[s]===void 0&&(n(s),N(s,{code:"capability_disabled",message:"capability not in this runtime generation"}));const w=_.filter(s=>Object.hasOwn(k,s)).map(s=>[s,k[s]]).filter(s=>typeof s[1]=="string"&&C.test(s[1])),[S,...d]=await Promise.allSettled([D&&C.test(D)?h(D):Promise.resolve({}),...w.map(([,s])=>h(s))]),l=M;Z=ye(u,S.status==="fulfilled"&&S.value?.TRANSFORMS||{},{shellOrigin:l,mount:re},s=>parent.postMessage({__frame_cap_telemetry:s},l));const p=s=>parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:s}},l),v=Z;d.forEach((s,O)=>{const j=w[O][0];if(s.status!=="fulfilled"){p(j);return}try{s.value?.install?.(v)}catch{p(j)}});for(const[s,O]of L)if(!(O.queue.length===0&&Object.keys(O.impl).length>0)){if(_.includes(s)){N(s,{code:"capability_disabled",message:"capability not available in this session"});continue}N(s,{code:"not_granted",message:"capability not available in this session"})}await g,parent.postMessage({__frame_ready:!0},M);let E=-1,A=0;const R=()=>{A=0;const s=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);s!==E&&(E=s,parent.postMessage({__frame_size:!0,h:s},l))},b=()=>{A||(A=setTimeout(R,200))},U=new ResizeObserver(b);U.observe(document.documentElement),document.body&&U.observe(document.body),document.addEventListener("load",b,!0),document.fonts?.ready.then(b,()=>{}),addEventListener("beforeprint",()=>{E=-1,R()}),b(),addEventListener("message",s=>{if(!(s.source!==parent||s.origin!==l)&&W(s.data)){try{e?.promoted()}catch{}E=-1,b()}})})}})();</script><!-- /frame-runtime --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>FolderView2 — Architecture Analysis</title>
+<style>
+  /* ---------- tokens: light is the base ---------- */
+  :root {
+    --ground:      #EEF1F2;
+    --surface:     #FFFFFF;
+    --surface-2:   #E4E9EA;
+    --line:        #CBD3D5;
+    --line-soft:   #DDE3E4;
+    --ink:         #12181A;
+    --ink-2:       #3B4649;
+    --ink-3:       #6B7679;
+    --accent:      #C25708;
+    --accent-soft: #F4E3D4;
+    --good:        #2C6E52;
+    --warn:        #9A6608;
+    --crit:        #A8332B;
+    --good-bg:     #DDEAE3;
+    --warn-bg:     #F3E7CD;
+    --crit-bg:     #F2DCDA;
+    --rail:        #B8C2C4;
+
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+    --sign: "Arial Narrow", "Helvetica Neue Condensed", "Liberation Sans Narrow", Impact, sans-serif;
+    --body: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, "Times New Roman", serif;
+
+    --measure: 66ch;
+    --gut: clamp(1.25rem, 4vw, 3rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1214;
+      --surface:     #161C1E;
+      --surface-2:   #1E2528;
+      --line:        #2C3639;
+      --line-soft:   #232B2E;
+      --ink:         #E6EBEC;
+      --ink-2:       #B2BEC1;
+      --ink-3:       #7E8B8E;
+      --accent:      #EE8F3E;
+      --accent-soft: #33241708;
+      --good:        #6FC79E;
+      --warn:        #DFB255;
+      --crit:        #E5827A;
+      --good-bg:     #172A22;
+      --warn-bg:     #2C2415;
+      --crit-bg:     #2E1B19;
+      --rail:        #39464A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0E1214;
+    --surface:     #161C1E;
+    --surface-2:   #1E2528;
+    --line:        #2C3639;
+    --line-soft:   #232B2E;
+    --ink:         #E6EBEC;
+    --ink-2:       #B2BEC1;
+    --ink-3:       #7E8B8E;
+    --accent:      #EE8F3E;
+    --accent-soft: #33241708;
+    --good:        #6FC79E;
+    --warn:        #DFB255;
+    --crit:        #E5827A;
+    --good-bg:     #172A22;
+    --warn-bg:     #2C2415;
+    --crit-bg:     #2E1B19;
+    --rail:        #39464A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--gut) 6rem;
+  }
+  @media (min-width: 1000px) {
+    .shell { grid-template-columns: 13rem minmax(0, 1fr); gap: 3.5rem; }
+  }
+
+  /* ---------- nav rail ---------- */
+  nav.rail { display: none; }
+  @media (min-width: 1000px) {
+    nav.rail {
+      display: block;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      padding-top: 8.5rem;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+  }
+  .rail ol {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: .45rem;
+    border-left: 1px solid var(--line);
+  }
+  .rail a {
+    display: block;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-decoration: none;
+    padding: .1rem 0 .1rem .85rem;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+  }
+  .rail a:hover, .rail a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+
+  main { min-width: 0; }
+
+  /* ---------- masthead ---------- */
+  header.mast {
+    padding: 5rem 0 2.5rem;
+    border-bottom: 3px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.4rem;
+    display: flex; flex-wrap: wrap; gap: .5rem 1.1rem;
+  }
+  .eyebrow span { color: var(--ink-3); }
+  h1 {
+    font-family: var(--sign);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+    font-size: clamp(2.9rem, 9vw, 5.6rem);
+    line-height: .92;
+    margin: 0 0 1.2rem;
+    text-wrap: balance;
+  }
+  h1 em {
+    font-style: normal;
+    display: block;
+    color: var(--ink-3);
+  }
+  .standfirst {
+    max-width: var(--measure);
+    font-size: 1.16rem;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- stat strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .stat {
+    padding: 1.5rem 1.1rem 1.4rem 0;
+    border-right: 1px solid var(--line-soft);
+  }
+  .stat:last-child { border-right: 0; }
+  .stat b {
+    display: block;
+    font-family: var(--sign);
+    font-weight: 700;
+    font-size: 2.15rem;
+    line-height: 1;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat span {
+    display: block;
+    margin-top: .5rem;
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    line-height: 1.4;
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 3.4rem 0 0; }
+  h2 {
+    font-family: var(--sign);
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3.4vw, 2.25rem);
+    letter-spacing: .015em;
+    line-height: 1.05;
+    margin: 0 0 .35rem;
+    text-wrap: balance;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 .9rem;
+  }
+  h3 {
+    font-family: var(--sign);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin: 2.3rem 0 .6rem;
+    color: var(--ink);
+  }
+  p { max-width: var(--measure); margin: 0 0 1.05rem; }
+  section > p:first-of-type { margin-top: .4rem; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  code {
+    font-family: var(--mono);
+    font-size: .84em;
+    background: var(--surface-2);
+    padding: .1em .32em;
+    border-radius: 2px;
+  }
+  ul.plain { max-width: var(--measure); padding-left: 1.15rem; margin: 0 0 1.05rem; }
+  ul.plain li { margin-bottom: .5rem; }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1.5rem;
+    margin: 1.6rem 0;
+  }
+  .panel-label {
+    font-family: var(--mono);
+    font-size: .63rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 1.1rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: none;
+  }
+
+  /* ---------- pull quote ---------- */
+  .pull {
+    border-left: 3px solid var(--accent);
+    padding: .3rem 0 .3rem 1.4rem;
+    margin: 2rem 0;
+    max-width: var(--measure);
+  }
+  .pull p {
+    font-size: 1.24rem;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* ---------- layer stack diagram ---------- */
+  .stack { display: flex; flex-direction: column; gap: .55rem; }
+  .tier {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .tier-name {
+    font-family: var(--mono);
+    font-size: .63rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: .75rem;
+    border-top: 1px solid var(--line-soft);
+  }
+  .tier-body { display: flex; flex-wrap: wrap; gap: .45rem; }
+  .node {
+    font-family: var(--mono);
+    font-size: .74rem;
+    line-height: 1.35;
+    padding: .5rem .7rem;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    flex: 1 1 auto;
+  }
+  .node b { display: block; color: var(--ink); font-weight: 600; }
+  .node.hot { border-color: var(--accent); color: var(--ink); }
+  .node.hot b { color: var(--accent); }
+  .node.core { border-style: dashed; color: var(--ink-3); background: transparent; }
+  .flowmark {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--ink-3);
+    letter-spacing: .1em;
+    padding: .1rem 0;
+    max-width: none;
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipe { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: grid;
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: .85rem 0;
+    border-top: 1px solid var(--line-soft);
+    align-items: start;
+  }
+  .step:first-child { border-top: 0; }
+  .step-n {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--ink-3);
+    padding-top: .18rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .step-t { margin: 0; max-width: none; font-size: .95rem; }
+  .step-t b { font-family: var(--mono); font-size: .8rem; font-weight: 600; }
+  .step-t span { display: block; color: var(--ink-2); font-size: .88rem; margin-top: .15rem; }
+  .step.accentuate .step-n { color: var(--accent); }
+  .step.accentuate .step-t b { color: var(--accent); }
+
+  /* ---------- tables ---------- */
+  .scroller { overflow-x: auto; margin: 1.6rem 0; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 32rem; }
+  th, td { text-align: left; padding: .8rem 1rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 400;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.mono, th.mono { font-family: var(--mono); font-size: .8rem; }
+
+  /* ---------- findings ---------- */
+  .findings { display: flex; flex-direction: column; gap: .7rem; margin: 1.7rem 0; }
+  .finding {
+    display: grid;
+    grid-template-columns: .3rem minmax(0, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .sev { background: var(--rail); }
+  .finding.crit .sev { background: var(--crit); }
+  .finding.warn .sev { background: var(--warn); }
+  .finding.note .sev { background: var(--ink-3); }
+  .f-body { padding: 1rem 1.2rem 1.1rem; }
+  .f-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .6rem .9rem; margin-bottom: .4rem; }
+  .f-head h4 {
+    margin: 0;
+    font-family: var(--sign);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: .59rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: .18rem .45rem;
+    border-radius: 2px;
+  }
+  .tag.crit { background: var(--crit-bg); color: var(--crit); }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.note { background: var(--surface-2); color: var(--ink-3); }
+  .f-body p { margin: 0 0 .4rem; font-size: .93rem; max-width: var(--measure); }
+  .f-loc {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--ink-3);
+    margin: .5rem 0 0;
+    max-width: none;
+  }
+
+  /* ---------- verdict columns ---------- */
+  .cols { display: grid; gap: 1.5rem; margin: 1.6rem 0; }
+  @media (min-width: 720px) { .cols { grid-template-columns: 1fr 1fr; } }
+  .col h3 { margin-top: 0; }
+  .col ul { margin: 0; padding-left: 1.1rem; }
+  .col li { margin-bottom: .55rem; font-size: .95rem; }
+  .col.good h3 { color: var(--good); }
+  .col.bad h3 { color: var(--crit); }
+
+  /* ---------- redesign list ---------- */
+  ol.redesign { counter-reset: r; list-style: none; padding: 0; margin: 1.4rem 0 0; max-width: var(--measure); }
+  ol.redesign li {
+    counter-increment: r;
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  ol.redesign li::before {
+    content: counter(r);
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--accent);
+    padding-top: .12rem;
+  }
+  ol.redesign b { font-family: var(--sign); text-transform: uppercase; letter-spacing: .04em; font-size: 1rem; display: block; margin-bottom: .2rem; }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  }
+</style>
+
+<div class="shell">
+  <nav class="rail" aria-label="Sections">
+    <ol>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#constraint">The constraint</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#layers">System layers</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#pipeline">Render pipeline</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#model">Data model</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#server">Server side</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#extend">Extension system</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#findings">Findings</a></li>
+      <li><a href="https://28333f3a-af37-43b2-a53e-3eadc0b20b70.frame.claudeusercontent.com/_f/1786157590-7fd7/#verdict">Verdict</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="mast">
+      <p class="eyebrow">Architecture analysis <span>FugginOld / unraid-folderview</span> <span>branch main @ a8893f2</span></p>
+      <h1>FolderView2<em>a post-processor for<br>someone else’s page</em></h1>
+      <p class="standfirst">An Unraid&nbsp;7 plugin that adds folders to the Docker and VM tabs — by letting Unraid render its own list, then <strong>physically relocating the rows</strong>. It owns no container state, reimplements no behaviour, and inherits everything the host page already does. That single decision explains almost every structural quirk in the codebase.</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b>8,268</b><span>Lines, excl.<br>vendored libs</span></div>
+      <div class="stat"><b>9</b><span>PHP endpoints<br>(7 are 3 lines)</span></div>
+      <div class="stat"><b>3×</b><span>Duplicated<br>implementations</span></div>
+      <div class="stat"><b>13</b><span>Custom events<br>for extensions</span></div>
+      <div class="stat"><b>0</b><span>Tests, CI,<br>build step</span></div>
+    </div>
+
+    <section id="constraint">
+      <p class="kicker">01 — The problem it is solving</p>
+      <h2>No extension point, so make one</h2>
+      <p>Unraid’s Docker tab is rendered by <code>dynamix.docker.manager</code>, a first-party page a plugin cannot modify. It emits a flat table of container rows and that is the end of its contract. A homelab with forty containers is an unreadable wall, and Unraid ships no grouping primitive. Three ways in existed:</p>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Approach</th><th>Cost</th><th class="mono">Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>Fork the Docker tab</td><td>Re-fork on every Unraid release.</td><td class="mono">Fatal</td></tr>
+            <tr><td>Re-render the list from the Docker API</td><td>Reimplement every row behaviour Unraid attaches — context menus, log links, update checks, autostart switches, live-stat wiring — and keep them in sync forever.</td><td class="mono">Enormous</td></tr>
+            <tr><td><strong>Let Unraid render, then rearrange the DOM</strong></td><td>Fragile against internal changes.</td><td class="mono">Chosen</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pull">
+        <p>A container inside a folder is the <em>same DOM node Unraid created</em>, moved. Not a copy. Its start/stop menu, update indicator and autostart toggle keep working with zero plugin code.</p>
+      </div>
+
+      <p>The trade is honest and, two years on, vindicated: the changelog is a long list of “fix for Unraid v7” entries — the recurring cost of monkey-patching — but a re-render approach would have had to own the whole surface instead, and would have died at 6.10.</p>
+    </section>
+
+    <section id="layers">
+      <p class="kicker">02 — Structure</p>
+      <h2>Four thin layers</h2>
+      <p>The plugin lives on a RAM disk that is wiped every reboot and rebuilt from a package on the USB flash. Only two JSON files on flash are persistent state. Everything else is disposable.</p>
+
+      <div class="panel">
+        <p class="panel-label">Layer stack · data flows downward, patches upward</p>
+        <div class="stack">
+          <div class="tier">
+            <div class="tier-name">Flash<br>persistent</div>
+            <div class="tier-body">
+              <div class="node"><b>docker.json</b>folder definitions</div>
+              <div class="node"><b>vm.json</b>folder definitions</div>
+              <div class="node"><b>scripts/ styles/</b>user extensions, survive upgrades</div>
+            </div>
+          </div>
+          <p class="flowmark">↕</p>
+          <div class="tier">
+            <div class="tier-name">Page<br>*.page</div>
+            <div class="tier-body">
+              <div class="node"><b>*.Docker · *.VMs · *.Dashboard</b>inject into existing tabs via front-matter</div>
+              <div class="node"><b>Folder.page</b>create / edit form</div>
+              <div class="node"><b>FolderView2.page</b>settings</div>
+            </div>
+          </div>
+          <p class="flowmark">↓</p>
+          <div class="tier">
+            <div class="tier-name">Server<br>PHP</div>
+            <div class="tier-body">
+              <div class="node">read · read_order · read_unraid_order<br>create · update · delete · cpu · version</div>
+              <div class="node hot"><b>lib.php</b>all logic lives here · 492 lines</div>
+            </div>
+          </div>
+          <p class="flowmark">↓</p>
+          <div class="tier">
+            <div class="tier-name">Client<br>JS</div>
+            <div class="tier-body">
+              <div class="node hot"><b>docker.js</b>1,752</div>
+              <div class="node hot"><b>dashboard.js</b>1,341</div>
+              <div class="node hot"><b>vm.js</b>772</div>
+              <div class="node"><b>folder.js</b>form</div>
+              <div class="node"><b>folderview2.js</b>settings</div>
+            </div>
+          </div>
+          <p class="flowmark">↓ consumed, never modified ↓</p>
+          <div class="tier">
+            <div class="tier-name">Unraid<br>core</div>
+            <div class="tier-body">
+              <div class="node core">dynamix.docker.manager<br>DockerClient · DockerTemplates</div>
+              <div class="node core">dynamix.vm.manager<br>libvirt_helpers</div>
+              <div class="node core">dockerload SSE stream</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>The page layer is nearly logic-free: it sets a <code>$type</code>, bootstraps i18n, globs user extension files off flash, and loads the real script. The server layer exists only to be URLs. The work is all client-side.</p>
+    </section>
+
+    <section id="pipeline">
+      <p class="kicker">03 — The core mechanism</p>
+      <h2>Intercept, reconcile, relocate</h2>
+      <p>The plugin must run <em>after</em> Unraid draws its table but <em>before</em> the user sees it. No such event exists, so it wraps the functions that do the drawing — <code>window.loadlist</code> and <code>window.listview</code> on Docker, and an <code>$.ajaxPrefilter</code> on the Dashboard and VM tabs, which have no equivalent global to patch.</p>
+
+      <div class="panel">
+        <p class="panel-label">One refresh, start to finish</p>
+        <div class="pipe">
+          <div class="step accentuate">
+            <div class="step-n">01</div>
+            <p class="step-t"><b>Patched loadlist fires four XHRs — and does not await them</b><span>folders · saved order · container info · live order. The network round-trips overlap Unraid’s own render entirely.</span></p>
+          </div>
+          <div class="step">
+            <div class="step-n">02</div>
+            <p class="step-t"><b>loadlist_original() → Unraid renders its rows</b><span>Full stock behaviour, untouched.</span></p>
+          </div>
+          <div class="step">
+            <div class="step-n">03</div>
+            <p class="step-t"><b>Patched listview() runs after the original</b><span>Rows are now in the DOM. A one-shot <code>loadedFolder</code> guard ensures folders build exactly once.</span></p>
+          </div>
+          <div class="step accentuate">
+            <div class="step-n">04</div>
+            <p class="step-t"><b>createFolders() awaits the four promises</b><span>By now the data has usually already arrived. This overlap is the changelog entry “now folder load faster”.</span></p>
+          </div>
+          <div class="step">
+            <div class="step-n">05</div>
+            <p class="step-t"><b>Reconcile two order lists</b><span>Saved prefs contain <code>folder-*</code> pseudo-entries; the live list contains only containers. Folders are spliced in at <code>index + newOnes.length</code> — the offset compensating for containers Unraid appends at the front.</span></p>
+          </div>
+          <div class="step">
+            <div class="step-n">06</div>
+            <p class="step-t"><b>Per folder: move real rows, clone previews</b><span>The live <code>&lt;tr&gt;</code> is <em>moved</em> into hidden folder storage; a <em>clone</em> populates the icon strip. Move preserves Unraid’s handlers; the clone is disposable chrome.</span></p>
+          </div>
+          <div class="step accentuate">
+            <div class="step-n">07</div>
+            <p class="step-t"><b>Return remBefore; caller rewinds its loop counter</b><span>The child splices entries out of the array the parent is iterating. Every absorbed row that sat before the folder shifts the cursor back by one. This works — and it is the most fragile thing in the codebase.</span></p>
+          </div>
+        </div>
+      </div>
+
+      <h3>Folders as pseudo-containers</h3>
+      <p>The structural trick worth stealing: a folder is stored in <strong>Unraid’s own ordering array</strong> as an entry named <code>folder-&lt;id&gt;</code>. Unraid persists drag-and-drop order to <code>userprefs.cfg</code>; because a folder occupies a slot like any container, dragging it among containers just works, and Unraid persists it without knowing folders exist. No parallel ordering system, no sync problem.</p>
+      <p>The price is one small lie the plugin maintains: Unraid re-numbers on save and gets confused by the extra entries, so a five-line <code>ajaxPrefilter</code> rewrites the outgoing payload with a clean index sequence. That interceptor is the seam of the entire design.</p>
+    </section>
+
+    <section id="model">
+      <p class="kicker">04 — State</p>
+      <h2>Two JSON files and a union</h2>
+      <p>Folders are keyed by a random 20-character ID, never derived from the name — so renaming cannot orphan a folder and two folders may share a name. Cheap and correct. <code>settings</code> is a flat bag of ~19 fields with no schema and no migration step: every consumer defaults each missing field individually, which is crude but has absorbed two years of additions without a single migration. The cost is that the defaults live at every read site instead of being stated once.</p>
+
+      <h3>Membership is computed from three sources</h3>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Mechanism</th><th>Evaluated</th><th>Who it actually serves</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">containers[]</td><td>Persisted</td><td>Humans clicking checkboxes in the edit form.</td></tr>
+            <tr><td class="mono">regex</td><td>Client-side, every render</td><td>Naming conventions — <code>^arr-</code>, or Pterodactyl’s UUID-named eggs. Picks up new containers with no persistence and no staleness.</td></tr>
+            <tr><td class="mono">label folder.view2</td><td>Client-side, every render</td><td><strong>The important one.</strong> A <code>docker-compose.yml</code> declares its own folder membership, so a stack torn down and recreated lands back in the right folder untouched. Neither other mechanism can do this.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Three mechanisms for one concept reads as over-design until you see the third — the compose use case named in the README is unreachable without it.</p>
+    </section>
+
+    <section id="server">
+      <p class="kicker">05 — PHP</p>
+      <h2>One function carries the weight</h2>
+      <p>Seven of nine endpoints are three lines. All real work is in <code>lib.php</code>, and <code>readInfo</code> alone is roughly 55% of the PHP. It assembles the per-container payload the UI needs, and it contains one genuinely good optimisation and one genuinely expensive habit.</p>
+
+      <h3>Good — templates parsed once</h3>
+      <p>Unraid stores per-container metadata in XML templates. The naive shape is “for each container, find and parse its template” — O(containers × templates) DOM parses. Instead every template is parsed once into a map keyed <code>name|image</code>, then looked up in O(1). A small change with a real win on a forty-container server.</p>
+
+      <h3>Good — a fallback chain that became the main road</h3>
+      <p>A container either has an Unraid template or it doesn’t — compose, CLI, and Portainer containers don’t. Rather than degrade, the code reads the same fields from <code>net.unraid.docker.*</code> labels, the convention Unraid itself uses. The changelog shows this being learned across several releases. It is now the load-bearing path for compose users, who are the stated audience.</p>
+
+      <h3>Expensive — Tailscale resolution shells out</h3>
+      <p>Resolving a <code>[hostname]</code> or <code>[noserve]</code> WebUI placeholder means asking the container: up to two <code>docker exec … tailscale</code> calls each, serially, <em>on every list refresh</em>. Injection is guarded correctly — a strict name regex <em>and</em> <code>escapeshellarg</code> — but each exec costs 50–200 ms. Ten such containers is a visible stall. A short-lived cache keyed on container ID is about ten lines.</p>
+
+      <h3>Duplicated by necessity</h3>
+      <p><code>readUnraidOrder</code> re-derives the container order exactly as Unraid computes it — prefs lookup, synthetic index for unknowns, <code>array_multisort</code>, natural-sort fallback. Every branch mirrors Unraid’s behaviour, because no reusable function is exported. It will drift; when it does, folders render in the wrong place immediately, which is at least a loud failure.</p>
+    </section>
+
+    <section id="extend">
+      <p class="kicker">06 — The best-designed part</p>
+      <h2>Zero-config extensions</h2>
+      <p>The extension system is the only part of the codebase with a <em>designed</em> API rather than an accreted one, and it punches well above the project’s weight. <code>folderEvents</code> is a bare <code>EventTarget</code> — the mechanism is literally one line of source.</p>
+
+      <div class="cols">
+        <div class="col">
+          <h3>Live references, not copies</h3>
+          <p>A listener on <code>docker-folder-context</code> receives the options array <em>before</em> it reaches the menu library and can push its own entries in. A listener on <code>docker-pre-folder-creation</code> can rewrite the folder definition before it renders. No registration API, no manifest, no permission model — mutate the object and the plugin uses your version. Wide open, and exactly right for a tool where the extension author and the operator are the same person.</p>
+        </div>
+        <div class="col">
+          <h3>Filename as routing</h3>
+          <p><code>mine.docker.js</code> loads on the Docker tab; <code>mine.dashboard-docker.js</code> on both. A regex glob against the filename replaces what would otherwise be a manifest format and the code to parse it. The whole rule fits in one line of the dev guide, and <code>dev/</code> ships commented templates plus HTML snapshots of the generated markup.</p>
+        </div>
+      </div>
+
+      <p>The one gap: styling is CSS-only by policy, because the markup is a single 3,000-character template literal inside <code>createFolder</code>. Extension authors can restyle anything and restructure nothing.</p>
+    </section>
+
+    <section id="findings">
+      <p class="kicker">07 — Verified, not speculative</p>
+      <h2>Findings</h2>
+      <p>Everything below was confirmed against the source at <code>a8893f2</code>. Ordered by what would bite a new maintainer first.</p>
+
+      <div class="findings">
+        <div class="finding crit">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Package URL points at a branch that does not exist</h4><span class="tag crit">Release blocker</span></div>
+            <p>The manifest downloads the <code>.txz</code> from <code>…/<strong>master</strong>/archive/</code> while the plugin URL on line 8 uses <code><strong>main</strong></code>. The repo’s default branch is <code>main</code>. It also still points at the upstream <code>VladoPortos</code> repo rather than this fork.</p>
+            <p class="f-loc">folder.view2.plg:290 · vs line 8</p>
+          </div>
+        </div>
+
+        <div class="finding crit">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Manifest version is behind the archive</h4><span class="tag crit">Release blocker</span></div>
+            <p>The manifest declares <code>2025.04.13</code>, but <code>archive/</code> contains builds through <code>2025.05.26</code>. A fresh install from the manifest gets an older package than the repo holds.</p>
+            <p class="f-loc">folder.view2.plg:9 · archive/</p>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Unvalidated <code>type</code> reaches a filesystem path</h4><span class="tag warn">Hardening</span></div>
+            <p><code>$_GET['type']</code> and <code>$_POST['type']</code> flow straight into <code>"$configDir/$type.json"</code> with no whitelist, reachable from four endpoints. Behind session auth and not remotely exploitable — but the fix is a two-value <code>in_array</code> check.</p>
+            <p class="f-loc">server/lib.php:73–105 · read · create · update · delete</p>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Mutating endpoints carry no CSRF token</h4><span class="tag warn">Hardening</span></div>
+            <p><code>create.php</code>, <code>update.php</code> and <code>delete.php</code> accept requests without Unraid’s <code>csrf_token</code>, and <code>delete.php</code> mutates on a <code>GET</code>. Unraid’s own endpoints require the token; matching that convention is roughly ten lines.</p>
+            <p class="f-loc">server/create.php · update.php · delete.php</p>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Index arithmetic over a live-mutated array</h4><span class="tag warn">Structural</span></div>
+            <p><code>createFolders</code> iterates the order array while <code>createFolder</code> splices entries out of it, with a DOM write in between; the child returns a count and the parent rewinds its cursor. The changelog documents at least six bugs traceable to this pattern. A two-pass design — compute the arrangement, then apply it — removes the entire class.</p>
+            <p class="f-loc">scripts/docker.js:124–126 · and its two siblings</p>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Triplicated lifecycle</h4><span class="tag warn">Structural</span></div>
+            <p><code>docker.js</code>, <code>dashboard.js</code> and <code>vm.js</code> implement the same lifecycle three times — and <code>dashboard.js</code> does it twice internally, once per type. About 3,800 lines where perhaps 1,400 of distinct behaviour exists. The differences are parameters, not architecture. Every fix must land in three or four places; the ones that get missed are the recurring “small fix for VMs” changelog entries.</p>
+            <p class="f-loc">scripts/docker.js · dashboard.js · vm.js</p>
+          </div>
+        </div>
+
+        <div class="finding note">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Debug logging shipped as production code</h4><span class="tag note">Readability</span></div>
+            <p>About 290 of <code>docker.js</code>’s 1,752 lines are <code>if (FOLDER_VIEW_DEBUG_MODE) console.log(…)</code>, interleaved with logic at roughly one line in six, and dead in every shipped build. A no-op <code>log()</code> helper recovers the readability at no cost.</p>
+            <p class="f-loc">scripts/docker.js · server/lib.php</p>
+          </div>
+        </div>
+
+        <div class="finding note">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Two order lists, swapped names</h4><span class="tag note">Trap</span></div>
+            <p><code>read_order.php</code> is read into a variable called <code>unraidOrder</code>; <code>read_unraid_order.php</code> into one called <code>order</code>. The names are inverted relative to the endpoints. Expect to re-derive this every time you open the file.</p>
+            <p class="f-loc">scripts/docker.js:16–19</p>
+          </div>
+        </div>
+
+        <div class="finding note">
+          <div class="sev"></div>
+          <div class="f-body">
+            <div class="f-head"><h4>Server is the source of truth, git is the backup</h4><span class="tag note">Workflow</span></div>
+            <p><code>copy_to_git.sh</code> does <code>rm -Rf src/…/* </code> then copies the live Unraid server back into the repo. It works, but it inverts the normal direction and silently destroys any repo-only change. Prefer editing in the repo and copying <em>out</em> — with no build step, a file copy is the whole deploy.</p>
+            <p class="f-loc">copy_to_git.sh</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="verdict">
+      <p class="kicker">08 — Assessment</p>
+      <h2>Where it earns its keep</h2>
+
+      <div class="cols">
+        <div class="col good">
+          <h3>Genuinely good</h3>
+          <ul>
+            <li><strong>Move, don’t re-render.</strong> Inheriting every Unraid row behaviour permanently and for free is worth the fragility it costs.</li>
+            <li><strong>Folders as pseudo-containers.</strong> Reusing Unraid’s ordering storage eliminates a whole category of sync bug.</li>
+            <li><strong>Request/render overlap.</strong> Fire in the patched <code>loadlist</code>, await in <code>createFolders</code> — free latency, correctly obtained.</li>
+            <li><strong>Three membership mechanisms.</strong> Each serves a distinct real user; the label path is what makes the compose story work at all.</li>
+            <li><strong>Template pre-parsing.</strong> The one place the code chose an algorithm over the obvious loop.</li>
+            <li><strong>The extension system.</strong> Event-based, zero-config, documented, with working templates.</li>
+            <li><strong>The <code>debug</code> keystroke dump.</strong> A tool built specifically to make the hardest subsystem inspectable. Most projects this size ship nothing.</li>
+          </ul>
+        </div>
+        <div class="col bad">
+          <h3>Genuinely weak</h3>
+          <ul>
+            <li><strong>Triplication dominates.</strong> ~3,800 lines carrying ~1,400 lines of distinct behaviour, and the drift shows up in the changelog.</li>
+            <li><strong>The <code>remBefore</code> pattern.</strong> Correct today, but a bug factory by construction.</li>
+            <li><strong>Debug logging at one line in six.</strong> It obscures the code it documents.</li>
+            <li><strong>Two unvalidated-input issues.</strong> Neither exploitable, both cheap to close — perhaps twenty lines for the pair.</li>
+            <li><strong>Two broken manifest facts.</strong> A fresh install from this repo either fails or installs the wrong build.</li>
+            <li><strong>No tests, no CI, no linter.</strong> Understandable given nothing runs off an Unraid box — but the order reconciliation is pure input→output, is where the bugs actually are, and is small enough to cover properly.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>If you were redesigning it</h3>
+      <p>Keep the DOM-relocation strategy. It is the correct answer to the constraint and two years have vindicated it. Change three things:</p>
+
+      <ol class="redesign">
+        <li><div><b>One core, three adapters</b>A single engine taking a config of selectors, endpoints and intercept strategy. Collapses ~3,800 lines to ~1,400 and makes “small fix for VMs” a phrase that never appears again.</div></li>
+        <li><div><b>Two-phase render</b>Phase one: a pure function, <code>(folders, orders, info) → layout plan</code>. Phase two: apply the plan to the DOM. Phase one is unit-testable without a browser, and the <code>remBefore</code> bug class ceases to exist.</div></li>
+        <li><div><b>A declared settings schema</b>One defaults object replacing ~19 fields’ worth of optional-chaining scattered across every read site — and a place to put migrations when you eventually need one.</div></li>
+      </ol>
+
+      <p>None of that is required for the plugin to keep working. It is what would make the next two years of Unraid releases cheaper than the last two.</p>
+    </section>
+
+    <footer>
+      <span>Source read in full · 8,268 lines excl. vendored</span>
+      <span>Companion docs: CONTEXT.md · ARCHITECTURE.md</span>
+    </footer>
+  </main>
+</div>
+
+</body></html>
