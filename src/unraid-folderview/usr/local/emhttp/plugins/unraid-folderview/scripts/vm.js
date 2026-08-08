@@ -706,7 +706,7 @@ const addVMFolderContext = (id) => {
 // Global variables
 let loadedFolder = false;
 let globalFolders = {};
-const folderRegex = /^folder-/;
+// folderRegex is a page global supplied by scripts/folder-core.js
 let folderDebugMode  = false;
 let folderDebugModeWindow = [];
 let folderReq = [];

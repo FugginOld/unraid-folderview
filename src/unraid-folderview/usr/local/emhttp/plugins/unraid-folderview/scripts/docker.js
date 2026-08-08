@@ -1700,7 +1700,7 @@ const bToMem = (b) => {
 let cpus = 1;
 let loadedFolder = false;
 let globalFolders = {};
-const folderRegex = /^folder-/;
+// folderRegex is a page global supplied by scripts/folder-core.js
 let folderDebugMode = false; // Existing flag
 let folderDebugModeWindow = [];
 let folderobserver;

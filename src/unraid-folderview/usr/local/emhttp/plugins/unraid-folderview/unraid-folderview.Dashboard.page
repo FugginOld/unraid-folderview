@@ -9,6 +9,7 @@ $type = 'dashboard';
 require_once('/usr/local/emhttp/plugins/unraid-folderview/langs/script.php');
 ?>
 <script src="/plugins/unraid-folderview/scripts/include/customEvents.js"></script>
+<script src="<?php autov('/plugins/unraid-folderview/scripts/folder-core.js')?>"></script>
 <?php
 require_once('/usr/local/emhttp/plugins/unraid-folderview/scripts/custom.php');
 ?>

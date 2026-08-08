@@ -103,7 +103,7 @@ index arithmetic. Doing that unverified is the exact failure mode the changelog 
     — added in Task 3. Task 1 only ships `folderRegex` so the file has a reason to exist
     and the loading order is proven before logic depends on it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/folder-core.test.js`:
 
@@ -123,12 +123,12 @@ test('the 7-character slice used to recover a folder id is correct', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: FAIL — `Cannot find module '../src/…/scripts/folder-core.js'`
 
-- [ ] **Step 3: Create the module**
+- [x] **Step 3: Create the module**
 
 Create `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder-core.js`:
 
@@ -140,7 +140,7 @@ Create `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts
  *   - no DOM, no jQuery, no `window`, no network, no host-page globals
  *   - no top-level side effects
  * It is loaded as a classic <script> on the tab pages (so everything here becomes a
- * page global) and require()d by `node --test tests/`. The CommonJS export block at
+ * page global) and require()d by `node --test tests/*.test.js`. The CommonJS export block at
  * the bottom is a no-op in the browser because `module` is undefined there.
  */
 
@@ -153,12 +153,12 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 2/2.
 
-- [ ] **Step 5: Delete the three duplicate declarations**
+- [x] **Step 5: Delete the three duplicate declarations**
 
 In `scripts/docker.js`, delete line 1703:
 
@@ -170,23 +170,33 @@ Do the same at `scripts/vm.js:709` and `scripts/dashboard.js:1282`. Delete only 
 declaration — every *use* of `folderRegex` stays exactly as it is, because the symbol is
 now a page global supplied by `folder-core.js`.
 
-- [ ] **Step 6: Load the module before each tab script**
+- [x] **Step 6: Load the module on all three tab pages**
 
-In `unraid-folderview.Docker.page`, immediately **before** the existing line 28:
+All three pages already load `customEvents.js` — the plugin's other shared, page-wide,
+non-deferred script — immediately before they pull in user extensions via `custom.php`.
+`folder-core.js` goes in that same slot, directly after it:
 
 ```php
+<script src="/plugins/unraid-folderview/scripts/include/customEvents.js"></script>
 <script src="<?php autov('/plugins/unraid-folderview/scripts/folder-core.js')?>"></script>
-<script defer src="<?php autov('/plugins/unraid-folderview/scripts/docker.js')?>"></script>
+<?php require_once('/usr/local/emhttp/plugins/unraid-folderview/scripts/custom.php') ?>
 ```
 
-Note the new tag has **no `defer`**. A non-deferred classic script executes before any
-deferred script on the same page, which guarantees `folderRegex` exists by the time
-`docker.js` runs.
+That exact three-line shape applies to `unraid-folderview.Docker.page:21` and
+`unraid-folderview.VMs.page:21`. `unraid-folderview.Dashboard.page:11` has the same
+`customEvents.js` line but opens its `custom.php` include with a bare `<?php` on its own
+line — insert the new tag after `customEvents.js` there too, leaving that block alone.
 
-Apply the identical two-line pattern in `unraid-folderview.VMs.page` (before the `vm.js`
-tag) and `unraid-folderview.Dashboard.page` (before the `dashboard.js` tag).
+Note the new tag has **no `defer`**. `docker.js` is deferred and `vm.js`/`dashboard.js` are
+not; a non-deferred classic script placed earlier in the document executes before both
+kinds, so `folderRegex` is guaranteed to exist in all three cases. Loading it ahead of
+`custom.php` also means user extensions can use it.
 
-- [ ] **Step 7: Verify no symbol is declared twice**
+`Folder.page` and `FolderView2.page` do **not** get the tag — `folder.js` and
+`folderview2.js` never reference `folderRegex`. Revisit if a later phase gives them a
+reason to.
+
+- [x] **Step 7: Verify no symbol is declared twice**
 
 Run:
 
@@ -197,7 +207,7 @@ grep -rn "const folderRegex" src/
 Expected: exactly one hit, in `scripts/folder-core.js`. Any second hit is a page-breaking
 `SyntaxError` waiting to happen.
 
-- [ ] **Step 8: Write the runner doc**
+- [x] **Step 8: Write the runner doc**
 
 Create `tests/README.md`:
 
@@ -206,14 +216,21 @@ Create `tests/README.md`:
 
 Pure-logic tests for the parts of the plugin that do not need a browser or an Unraid box.
 
-    node --test tests/
+    node --test tests/*.test.js
 
 Requires Node >= 18. No dependencies, no `package.json`, no install step.
+
+Use the glob form above, not `node --test tests/` — on Windows the bare directory
+argument is resolved as a module path and the run dies with `MODULE_NOT_FOUND`.
 
 These files are **not** packaged — `pkg_build.sh` only copies `src/unraid-folderview/`.
 ```
 
-- [ ] **Step 9: Commit**
+Plus a short section explaining *why* `folder-core.js` is the only loadable file — every
+other script touches jQuery or the DOM at load time and every `server/` function
+constructs a `DockerClient` or `Libvirt`. See the committed `tests/README.md`.
+
+- [x] **Step 9: Commit**
 
 ```bash
 git add tests src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/folder-core.js
@@ -282,7 +299,7 @@ test('legacy: correct when new containers arrive at the FRONT (Unraid behaviour)
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.interleaveFoldersLegacy is not a function`
 
 - [ ] **Step 3: Transcribe the current logic**
@@ -321,7 +338,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 6/6. All four characterization tests green — the transcription is faithful
 and the offset arithmetic is correct *given its stated premise*.
 
@@ -442,7 +459,7 @@ test('every live container survives, in order', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.interleaveFolders is not a function` (8 failures).
 
 - [ ] **Step 3: Implement anchor-based insertion**
@@ -498,7 +515,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 10/10. (The four `interleaveFoldersLegacy` tests from Task 2 are removed
 in Step 5 — they will be failing at this point, which is expected.)
 
@@ -508,7 +525,7 @@ Remove the four `legacy:` tests added in Task 2 from `tests/folder-core.test.js`
 — proving the transcription faithful — is done, and `interleaveFoldersLegacy` no longer
 exists.
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 10/10, zero failures.
 
 - [ ] **Step 6: Call the shared function from `docker.js`**
@@ -980,7 +997,7 @@ test('htmlEscape is idempotent-safe for the ampersand case', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.htmlEscape is not a function` (4 failures).
 
 - [ ] **Step 3: Implement it**
@@ -1016,7 +1033,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 14/14.
 
 - [ ] **Step 5: Apply it at the folder-row sink**
@@ -1172,7 +1189,7 @@ test('folderLog reads the flag at call time, not at load time', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: FAIL — `core.folderLog is not a function` (3 failures).
 
 - [ ] **Step 3: Implement the helpers**
@@ -1203,7 +1220,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 17/17.
 
 - [ ] **Step 5: Convert the call sites in `docker.js`**
@@ -1267,7 +1284,7 @@ declaration at the top of each of the three scripts. Every other hit is an uncon
 
 - [ ] **Step 8: Verify nothing else changed**
 
-Run: `node --test tests/`
+Run: `node --test tests/*.test.js`
 Expected: PASS, 17/17.
 
 Then confirm the line count actually dropped:
