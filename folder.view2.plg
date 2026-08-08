@@ -6,12 +6,18 @@
 <!ENTITY launch "Settings/FolderView2">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY version "2025.04.13">
-<!ENTITY md5 "b3a00c47c4a549d6b97cc1e793f895d0">
+<!ENTITY version "2025.05.26">
+<!ENTITY md5 "1c510f83fcafc91db5202ac713c1476b">
 ]>
 
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="folder-open-o" support="https://forums.unraid.net/topic/189167-plugin-folderview2" min="7.0.0">
     <CHANGES>
+
+###2025.05.26
+- Fix: package download URL pointed at a non-existent "master" branch, so installs failed. Now uses "main".
+- Fix: plugin manifest was pinned to 2025.04.13 while newer packages had shipped. Now tracks the current package.
+- Fixes to the Advanced View.
+- Fix: support link.
 
 ###2025.04.13
 - Fix: Ongoing effort to get new verson to CA, renamed folder.view to folder.view2
@@ -287,7 +293,7 @@
 
     <!-- New source file -->
     <FILE Name="/boot/config/plugins/&name;/&name;-&version;.txz" Run="upgradepkg --install-new">
-        <URL>https://raw.github.com/&github;/master/archive/&name;-&version;.txz</URL>
+        <URL>https://raw.github.com/&github;/main/archive/&name;-&version;.txz</URL>
         <MD5>&md5;</MD5>
     </FILE>
 
