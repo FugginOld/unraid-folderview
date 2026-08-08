@@ -243,14 +243,38 @@ Things that will bite you. Details and reasoning in
      reachable from the read path. Note `readUserPrefs`
      ([lib.php:81-84](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L81-L84))
      already whitelists correctly; the pattern exists, it just wasn't applied.
-   - **`folder.name` and `folder.icon` are interpolated raw into HTML** at
-     [docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270).
-     A folder created via the first two gaps whose name is `<img src=x onerror=…>`
-     executes in the admin's session on the next Docker-tab load.
+   - **Untrusted values are interpolated raw into HTML template literals**, in all
+     three renderers. Every folder row, preview and tooltip is built by string
+     concatenation with no escaping anywhere. The sinks differ by how much you
+     should care, because they differ by *who controls the source*:
+
+     | Sink | Source | Trust |
+     |---|---|---|
+     | `folder.name`, `folder.icon` — [docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270), `dashboard.js`, `vm.js` | the folder form | **Attacker-reachable** via the CSRF gap above. This is the stored-XSS chain. |
+     | `TSWebUi` into an `href` — [docker.js:793](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L793) | `DNSName` returned by `docker exec … tailscale status` | **Unvalidated.** See below. |
+     | `net.unraid.docker.icon` into `img src` — [docker.js:770](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L770) | an arbitrary docker image label | Hostile image required — which implies worse problems already, but it is still an untrusted string reaching an HTML sink. |
+     | `ct.info.Name` | docker container name | Not a real risk — docker constrains names to `[a-zA-Z0-9][a-zA-Z0-9_.-]*`. |
+
+   - **The Tailscale FQDN path validates nothing.** The IP helper is careful —
+     `FILTER_VALIDATE_IP` with `FILTER_FLAG_IPV4`
+     ([lib.php:40](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L40)).
+     Its FQDN sibling returns `$status_data['Self']['DNSName']` straight out of
+     container-supplied JSON with no check at all
+     ([lib.php:61-67](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L61-L67)),
+     and that value lands in the `href` above. Two functions, twenty lines apart,
+     one careful and one not.
+
+   **Not a finding, despite appearances:** the `docker exec` calls themselves are
+   *not* command-injectable. The container name is anchored to
+   `/^[a-zA-Z0-9_.-]+$/` **and** passed through `escapeshellarg`
+   ([lib.php:30-34](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php#L30-L34)).
+   Automated scanners flag the `exec` line; the guard is genuinely correct. The
+   problem is what comes *back*, not what goes in.
 
    Fixes are small and independent: `in_array($type, ['docker','vm'], true)`, match
-   Unraid's `csrf_token` convention, and escape the two interpolations. Roughly
-   25 lines total.
+   Unraid's `csrf_token` convention, validate the FQDN, and add one `htmlEscape()`
+   helper applied at the interpolation sites. The first three are ~25 lines; the
+   escaping is mechanical but touches all three renderers.
 
 3. **The plugin depends on Unraid internals it does not declare.** Two kinds:
 

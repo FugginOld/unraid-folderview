@@ -541,9 +541,12 @@ build. A no-op `log()` helper would recover the readability at no cost.
 remotely-reachable vulnerability against a root-privileged UI
 ([CONTEXT.md §7.3](CONTEXT.md#7-sharp-edges--verified-not-speculative)): no
 `csrf_token` on the mutating endpoints (with `delete.php` mutating on `GET`),
-unwhitelisted `type` reaching a filesystem path, and raw interpolation of
-`folder.name` / `folder.icon` into HTML at
-[docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270).
+unwhitelisted `type` reaching a filesystem path, and a rendering layer that builds
+every row, preview and tooltip by string concatenation with no escaping anywhere —
+`folder.name` and `folder.icon` at
+[docker.js:270](src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/scripts/docker.js#L270)
+are the attacker-reachable pair, but the container-supplied Tailscale `DNSName`
+reaches an `href` unvalidated too.
 Session auth is not a mitigation — CSRF is the attack where the victim's session is
 already valid. The saving grace is that each fix is independent and small; ~25 lines
 closes all three. `readUserPrefs` at
