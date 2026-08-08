@@ -628,6 +628,10 @@ git commit -m "fix: anchor folder placement on real neighbours instead of index 
 
 ### Task 4: Make `readUnraidOrder` agree with Unraid
 
+> **DEFERRED** — skipped by request, to be batched with the next on-box session. Nothing
+> in Phase C or D depends on it. Phase E does: `planLayout`'s output is indexed against the
+> DOM Unraid rendered, so this must land before Phase E is verified.
+
 **Files:**
 - Modify: `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php:411` (docker branch)
 - Modify: `src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php` (vm branch, the `$count_vms + count($sort) + 1` line)
@@ -742,7 +746,7 @@ already valid.
 - Consumes: nothing.
 - Produces: `fv2_valid_type(string $type): bool` — `true` only for `docker` and `vm`.
 
-- [ ] **Step 1: Add the type guard**
+- [x] **Step 1: Add the type guard**
 
 In `lib.php`, immediately above `function readFolder(...)`:
 
@@ -758,7 +762,7 @@ In `lib.php`, immediately above `function readFolder(...)`:
     }
 ```
 
-- [ ] **Step 2: Apply it at every path-building site**
+- [x] **Step 2: Apply it at every path-building site**
 
 `readFolder` — refuse rather than read an arbitrary path:
 
@@ -808,7 +812,7 @@ explicit guard at the top of each anyway so the invariant is stated once per ent
         if(!fv2_valid_type($type)) { return []; }
 ```
 
-- [ ] **Step 3: Validate the Tailscale FQDN at source**
+- [x] **Step 3: Validate the Tailscale FQDN at source**
 
 At `lib.php:63-66`, replace:
 
@@ -838,7 +842,7 @@ with:
             }
 ```
 
-- [ ] **Step 4: Verify no unguarded path build remains**
+- [x] **Step 4: Verify no unguarded path build remains**
 
 Run:
 
@@ -849,7 +853,7 @@ grep -n 'configDir/\$type' src/unraid-folderview/usr/local/emhttp/plugins/unraid
 Expected: every hit is inside a function whose first statement is a `fv2_valid_type` guard.
 Cross-check by eye against the list in Step 2.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/unraid-folderview/usr/local/emhttp/plugins/unraid-folderview/server/lib.php
@@ -877,7 +881,7 @@ git commit -m "fix(security): whitelist type at every path site, validate tailsc
   this introduces no new dependency.
 - Produces: `fv2_require_csrf(): void` — exits 403 unless the request carries a valid token.
 
-- [ ] **Step 1: Add the guard helper**
+- [x] **Step 1: Add the guard helper**
 
 In `lib.php`, after `fv2_valid_type`:
 
@@ -899,7 +903,7 @@ In `lib.php`, after `fv2_valid_type`:
     }
 ```
 
-- [ ] **Step 2: Guard the three endpoints, and move `delete` off GET**
+- [x] **Step 2: Guard the three endpoints, and move `delete` off GET**
 
 `create.php`:
 
@@ -932,7 +936,7 @@ reachable from an `<img src>` on any page the admin visits:
 ?>
 ```
 
-- [ ] **Step 3: Send the token from all twelve client call sites**
+- [x] **Step 3: Send the token from all twelve client call sites**
 
 Three `create`/`update` sites gain one field. `folder.js:281,283`:
 
@@ -957,7 +961,7 @@ Apply the same shape at `vm.js:417` (`type: 'vm'`), `dashboard.js:641` (`'docker
 `dashboard.js:666` (`'vm'`), `folderview2.js:127` and `:144` (`'docker'`, the latter using
 `cid`), `folderview2.js:173` and `:190` (`'vm'`).
 
-- [ ] **Step 4: Verify no GET-based delete survives**
+- [x] **Step 4: Verify no GET-based delete survives**
 
 Run:
 

@@ -1,4 +1,5 @@
 <?php
     require_once("/usr/local/emhttp/plugins/unraid-folderview/server/lib.php");
-    updateFolder($_POST['type'], $_POST['content']);
+    fv2_require_csrf();
+    updateFolder($_POST['type'] ?? '', $_POST['content'] ?? '');
 ?>

@@ -1126,7 +1126,7 @@ const rmFolder = (id) => {
         if (!c) { setTimeout(loadlist, 0); return; } // Use timeout 0 for consistency
         $('div.spinner.fixed').show('slow');
         if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Calling delete API.`);
-        await $.get('/plugins/unraid-folderview/server/delete.php?type=docker&id=' + id).promise();
+        await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'docker', id: id, csrf_token: csrf_token }).promise();
         if (FOLDER_VIEW_DEBUG_MODE) console.log(`[FV2_DEBUG] rmFolder (id: ${id}): Delete API call finished. Reloading list.`);
         setTimeout(loadlist, 500);
     });

@@ -61,10 +61,10 @@ const importDocker = () => {
                 });
             }
             if(content.name) {
-                await $.post('/plugins/unraid-folderview/server/create.php', { type: 'docker', content: JSON.stringify(content) });
+                await $.post('/plugins/unraid-folderview/server/create.php', { type: 'docker', content: JSON.stringify(content), csrf_token: csrf_token });
             } else {
                 for (const [id, folder] of Object.entries(content)) {
-                    await $.post('/plugins/unraid-folderview/server/update.php', { type: 'docker', content: JSON.stringify(folder), id: id });
+                    await $.post('/plugins/unraid-folderview/server/update.php', { type: 'docker', content: JSON.stringify(folder), id: id, csrf_token: csrf_token });
                 }
             }
             populateTable();
@@ -98,10 +98,10 @@ const importVm = () => {
                 });
             }
             if(content.name) {
-                await $.post('/plugins/unraid-folderview/server/create.php', { type: 'vm', content: JSON.stringify(content) });
+                await $.post('/plugins/unraid-folderview/server/create.php', { type: 'vm', content: JSON.stringify(content), csrf_token: csrf_token });
             } else {
                 for (const [id, folder] of Object.entries(content)) {
-                    await $.post('/plugins/unraid-folderview/server/update.php', { type: 'vm', content: JSON.stringify(folder), id: id });
+                    await $.post('/plugins/unraid-folderview/server/update.php', { type: 'vm', content: JSON.stringify(folder), id: id, csrf_token: csrf_token });
                 }
             }
             populateTable();
@@ -124,7 +124,7 @@ const clearDocker = (id) => {
         },
         async (c) => {
             if (!c) { return; }
-            await $.get('/plugins/unraid-folderview/server/delete.php?type=docker&id=' + id).promise();
+            await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'docker', id: id, csrf_token: csrf_token }).promise();
             populateTable();
         });
     } else {
@@ -141,7 +141,7 @@ const clearDocker = (id) => {
         async (c) => {
             if (!c) { return; }
             for (const cid of Object.keys(dockers)) {
-                await $.get('/plugins/unraid-folderview/server/delete.php?type=docker&id=' + cid).promise();
+                await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'docker', id: cid, csrf_token: csrf_token }).promise();
             }
             populateTable();
         });
@@ -170,7 +170,7 @@ const clearVm = (id) => {
         },
         async (c) => {
             if (!c) { return; }
-            await $.get('/plugins/unraid-folderview/server/delete.php?type=vm&id=' + id).promise();
+            await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'vm', id: id, csrf_token: csrf_token }).promise();
             populateTable();
         });
     } else {
@@ -187,7 +187,7 @@ const clearVm = (id) => {
         async (c) => {
             if (!c) { return; }
             for (const cid of Object.keys(vms)) {
-                await $.get('/plugins/unraid-folderview/server/delete.php?type=vm&id=' + cid).promise();
+                await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'vm', id: cid, csrf_token: csrf_token }).promise();
             }
             populateTable();
         });

@@ -406,7 +406,7 @@ const rmFolder = (id) => {
     async (c) => {
         if (!c) { setTimeout(loadlist); return; }
         $('div.spinner.fixed').show('slow');
-        await $.get('/plugins/unraid-folderview/server/delete.php?type=vm&id=' + id).promise();
+        await $.post('/plugins/unraid-folderview/server/delete.php', { type: 'vm', id: id, csrf_token: csrf_token }).promise();
         loadedFolder = false;
         setTimeout(loadlist(), 500)
     });

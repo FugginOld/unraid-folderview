@@ -61,7 +61,15 @@
         if ($return_var === 0 && !empty($json_output)) {
             $status_data = json_decode($json_output, true);
             if (isset($status_data['Self']['DNSName'])) {
-                $dnsName = rtrim($status_data['Self']['DNSName'], '.'); 
+                $dnsName = rtrim((string) $status_data['Self']['DNSName'], '.');
+                // This value comes back from `docker exec <ct> tailscale status --json` — it
+                // is supplied by the container — and lands in an href in all three renderers.
+                // Its IPv4 sibling twenty lines up validates with FILTER_VALIDATE_IP; this
+                // one validated nothing.
+                if (filter_var($dnsName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
+                    fv2_debug_log("    fv2_get_tailscale_fqdn_from_container: Rejected non-hostname DNSName for $containerName: " . $dnsName);
+                    return null;
+                }
                 fv2_debug_log("    fv2_get_tailscale_fqdn_from_container: Found DNSName for $containerName: " . $dnsName);
                 return $dnsName;
             }
@@ -70,8 +78,36 @@
         return null;
     }
 
+    /**
+     * The only two values `type` may ever take. It arrives from $_GET / $_POST and is used
+     * to build filesystem paths ("$configDir/$type.json") in five functions including
+     * createFile(), which is the write primitive reachable from the read path.
+     * readUserPrefs() below already whitelists correctly; this applies the same pattern
+     * everywhere else.
+     */
+    function fv2_valid_type(string $type) : bool {
+        return in_array($type, ['docker', 'vm'], true);
+    }
+
+    /**
+     * Reject any request that does not carry Unraid's CSRF token. These endpoints run as
+     * root and mutate files on the flash drive; session auth alone does not protect them,
+     * because CSRF is exactly the attack in which the victim's session is already valid.
+     * Terminates the request on failure — callers need not check a return value.
+     */
+    function fv2_require_csrf() : void {
+        $var = @parse_ini_file('/var/local/emhttp/var.ini');
+        $expected = $var['csrf_token'] ?? '';
+        $given = $_POST['csrf_token'] ?? '';
+        if (!is_string($expected) || $expected === '' || !is_string($given) || !hash_equals($expected, $given)) {
+            http_response_code(403);
+            exit('Forbidden');
+        }
+    }
+
     function readFolder(string $type) : string {
         global $configDir;
+        if(!fv2_valid_type($type)) { return '{}'; }
         if(!file_exists("$configDir/$type.json")) { createFile($type); }
         return file_get_contents("$configDir/$type.json");
     }
@@ -89,6 +125,7 @@
     
     function updateFolder(string $type, string $content, string $id = '') : void {
         global $configDir;
+        if(!fv2_valid_type($type)) { return; }
         if(!file_exists("$configDir/$type.json")) { createFile($type); if (empty($id)) $id = generateId(); }
         if(empty($id)) { $id = generateId(); }
         $fileData = json_decode(file_get_contents("$configDir/$type.json"), true) ?: [];
@@ -98,6 +135,7 @@
 
     function deleteFolder(string $type, string $id) : void {
         global $configDir;
+        if(!fv2_valid_type($type)) { return; }
         if(!file_exists("$configDir/$type.json")) { createFile($type); return; }
         $fileData = json_decode(file_get_contents("$configDir/$type.json"), true) ?: [];
         unset($fileData[$id]);
@@ -110,6 +148,7 @@
 
     function createFile(string $type): void {
         global $configDir;
+        if(!fv2_valid_type($type)) { return; }
         if (!is_dir($configDir)) { @mkdir($configDir, 0770, true); }
         $default = ['docker' => '{}', 'vm' => '{}'];
         @file_put_contents("$configDir/$type.json", $default[$type] ?? '{}');
@@ -117,6 +156,7 @@
 
     function readInfo(string $type): array {
         fv2_debug_log("readInfo called for type: $type");
+        if(!fv2_valid_type($type)) { return []; }
         $info = [];
         if ($type == "docker") {
             global $dockerManPaths, $documentRoot;
@@ -396,6 +436,7 @@
 
     function readUnraidOrder(string $type): array {
         fv2_debug_log("readUnraidOrder called for type: $type");
+        if(!fv2_valid_type($type)) { return []; }
         $user_prefs_path = "/boot/config/plugins";
         $order = [];
         if ($type == "docker") {

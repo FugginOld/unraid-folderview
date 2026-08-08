@@ -278,9 +278,9 @@ const submitForm = async (e) => {
     }
     // send the data to the right endpoint
     if (folderId) {
-        await $.post('/plugins/unraid-folderview/server/update.php', { type: type, content: JSON.stringify(folder), id: folderId });
+        await $.post('/plugins/unraid-folderview/server/update.php', { type: type, content: JSON.stringify(folder), id: folderId, csrf_token: csrf_token });
     } else {
-        await $.post('/plugins/unraid-folderview/server/create.php', { type: type, content: JSON.stringify(folder) });
+        await $.post('/plugins/unraid-folderview/server/create.php', { type: type, content: JSON.stringify(folder), csrf_token: csrf_token });
     }
 
     // return to the right tab
