@@ -48,16 +48,6 @@ If you have any questions or issues, please file an issue on [GitHub](https://gi
 
 ---
 
-## ☕ Buy Me a Coffee (or a Beer!)
-
-If you like this project and want to support my caffeine-fueled coding sessions, you can buy me a coffee (or a beer, I won't judge! 🍻) on Ko-fi:
-
-[![Support me on Ko-fi](img/support_me_on_kofi_badge_red.png)](https://ko-fi.com/vladoportos)
-
-Every donation helps to proofe to my wife that I'm not a complete idiot :D
-
----
-
 ### Libraries used in this project:
 - [Chart.js](https://www.chartjs.org/)
 - [chartjs-adapter-moment](https://github.com/chartjs/chartjs-adapter-moment)
