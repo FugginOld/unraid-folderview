@@ -1,4 +1,4 @@
-# FolderView2 For Unraid 7
+# FolderView2 For Unraid 7 - Refactored (Soon)
 
 ## What is FolderView2?
 
